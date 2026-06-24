@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Malolan • markdown viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes, viewport-fit=cover">
+  <title>Malolan • structured markdown viewer</title>
   <!-- Fonts & icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <style>
     * { scrollbar-width: thin; scrollbar-color: #c7d2fe transparent; }
@@ -22,50 +22,83 @@
       font-weight: 600;
       box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.4);
     }
-    .row-striped tbody tr:nth-child(even) { background-color: #f8fafc; }
     .glass-panel { backdrop-filter: blur(10px); background: rgba(255,255,255,0.8); }
-    /* markdown content styling */
-    .md-content {
-      font-size: 0.95rem;
-      line-height: 1.7;
+    /* metadata table styling */
+    .meta-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9rem;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .meta-table td {
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .meta-table td:first-child {
+      font-weight: 600;
+      color: #475569;
+      background: #f8fafc;
+      width: 30%;
+      letter-spacing: 0.01em;
+    }
+    .meta-table tr:last-child td { border-bottom: none; }
+    .commentary-block {
+      border-left: 3px solid #e0e7ff;
+      background: #f9fafb;
+      border-radius: 0 0.75rem 0.75rem 0;
+      margin: 0.5rem 0 0.5rem 1rem;
+      padding: 0.75rem 1rem;
+      transition: all 0.2s;
+    }
+    .commentary-block:hover { border-left-color: #818cf8; background: #f5f7ff; }
+    .verse-original {
+      font-family: 'JetBrains Mono', monospace;
+      background: #fef9c3;
+      padding: 0.6rem 1rem;
+      border-radius: 0.7rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #1e293b;
+      border: 1px solid #fde047;
+      margin: 0.5rem 0;
+    }
+    .section-card {
+      background: white;
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      box-shadow: 0 10px 25px -8px rgba(0,0,0,0.06);
+      border: 1px solid #eef2ff;
+      margin-bottom: 1.5rem;
+    }
+    details summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
       color: #1e293b;
     }
-    .md-content h1, .md-content h2, .md-content h3 {
-      font-weight: 600;
-      margin-top: 1.5rem;
-      margin-bottom: 0.75rem;
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before {
+      content: "▸";
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+      display: inline-block;
+      color: #6366f1;
     }
-    .md-content h1 { font-size: 1.8rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3rem; }
-    .md-content h2 { font-size: 1.5rem; }
-    .md-content h3 { font-size: 1.25rem; }
-    .md-content p { margin: 0.75rem 0; }
-    .md-content ul, .md-content ol { margin: 0.75rem 0; padding-left: 1.5rem; }
-    .md-content li { margin: 0.25rem 0; }
-    .md-content code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.875rem; }
-    .md-content pre { background: #f1f5f9; padding: 1rem; border-radius: 12px; overflow-x: auto; }
-    .md-content blockquote { border-left: 4px solid #a5b4fc; padding-left: 1rem; color: #475569; }
-    .md-content table { 
-      border-collapse: collapse; 
-      width: 100%; 
-      margin: 1rem 0;
-      font-size: 0.9rem;
+    details[open] > summary::before {
+      transform: rotate(90deg);
     }
-    .md-content th {
-      background: #f1f5f9;
-      font-weight: 600;
-      padding: 0.5rem 1rem;
-      border: 1px solid #e2e8f0;
-      text-align: left;
+    .toggle-btn {
+      transition: all 0.2s ease;
+      font-weight: 500;
+      font-size: 0.8rem;
     }
-    .md-content td {
-      padding: 0.5rem 1rem;
-      border: 1px solid #e2e8f0;
-    }
-    .md-content tr:nth-child(even) { background: #fafcff; }
-    .md-content img { max-width: 100%; border-radius: 8px; }
-    .prose a { color: #4f46e5; text-decoration: underline; }
-    .prose a:hover { color: #4338ca; }
-    .line-highlight { background: #fef9c3; }
+    .md-content h2 { font-size: 1.6rem; margin-top: 0.5rem; }
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-700 font-sans min-h-screen pb-16" style="font-family: 'Inter', system-ui, sans-serif;">
@@ -80,27 +113,26 @@
     </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
     <!-- Homepage: list .md files -->
     <div id="homepage-view" class="hidden">
       <div class="text-center mb-12">
         <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight">Explore <span class="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Markdown files</span></h1>
-        <p class="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Select a .md file to view its full content with search & highlight.</p>
+        <p class="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Select a .md file to view its content with structured commentary.</p>
       </div>
       <ul id="file-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- dynamic file cards -->
       </ul>
     </div>
 
-    <!-- File view (full markdown) -->
+    <!-- File view (structured markdown) -->
     <div id="file-view" class="hidden">
       <!-- Toolbar -->
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <a href="index.html" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-full shadow-sm border border-indigo-100 hover:shadow-md transition">
           <span>←</span> Datasets
         </a>
-
-        <div class="relative flex-1 min-w-[280px] max-w-lg">
+        <div class="relative flex-1 min-w-[260px] max-w-lg">
           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
@@ -121,19 +153,15 @@
             </button>
           </div>
         </div>
-
-        <!-- simple info -->
         <div class="flex items-center gap-3 text-sm text-slate-500 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
           <span id="word-count-badge">📄</span>
         </div>
       </div>
 
-      <!-- Markdown content card -->
-      <div class="bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl overflow-hidden border border-slate-200/80">
-        <div id="md-scroll-container" class="overflow-auto custom-scroll p-6 md:p-10" style="max-height: 75vh;">
-          <div id="md-content" class="md-content prose max-w-none">
-            <!-- dynamically rendered markdown content -->
-          </div>
+      <!-- Metadata & structured content -->
+      <div id="md-scroll-container" class="overflow-auto custom-scroll bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-6 md:p-8 border border-slate-200/80" style="max-height: 78vh;">
+        <div id="md-content" class="md-content prose max-w-none">
+          <!-- dynamically rendered structured markdown -->
         </div>
       </div>
       <div class="mt-3 text-xs text-right text-slate-400 pr-2" id="file-info-indicator"></div>
@@ -196,68 +224,207 @@
       const fileInfoIndicator = document.getElementById('file-info-indicator');
       const wordCountBadge = document.getElementById('word-count-badge');
 
-      // State
-      let fullMarkdownText = '';
+      let fullRawText = '';
       let searchMatches = [];
       let searchPointer = -1;
       let currentSearchQuery = '';
       let searchDebounceTimer = null;
-      let currentFileName = '';
 
       const escapeHtml = (str) => {
         if (!str) return '';
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
       };
 
-      // simple markdown to HTML (basic support)
-      function markdownToHtml(md) {
-        if (!md) return '';
-        let html = md;
-        // code blocks
-        html = html.replace(/```([\s\S]*?)```/g, (m, code) => `<pre><code>${escapeHtml(code)}</code></pre>`);
-        // inline code
-        html = html.replace(/`([^`]+)`/g, (m, code) => `<code>${escapeHtml(code)}</code>`);
-        // headers
-        html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
-        html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-        html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-        // bold & italic
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-        // links
-        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-        // images
-        html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
-        // blockquotes
-        html = html.replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>');
-        // unordered lists
-        html = html.replace(/^\- (.*$)/gm, '<li>$1</li>');
-        html = html.replace(/^\* (.*$)/gm, '<li>$1</li>');
-        html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-        // ordered lists (simplified)
-        html = html.replace(/^\d+\. (.*$)/gm, '<li>$1</li>');
-        html = html.replace(/(<li>.*<\/li>)/s, '<ol>$1</ol>');
-        // paragraphs: double newline to <p>
-        html = html.replace(/\n\n/g, '</p><p>');
-        html = '<p>' + html + '</p>';
-        // clean up empty paragraphs
-        html = html.replace(/<p>\s*<\/p>/g, '');
-        // line breaks
-        html = html.replace(/\n/g, '<br />');
+      // ----- PARSER for custom .md structure -----
+      function parseCustomMarkdown(mdText) {
+        const lines = mdText.split(/\r?\n/);
+        const root = { metadata: {}, content: { title: '', sections: [] } };
+        let currentSection = null;
+        let currentVerse = null;
+        let currentCommentary = null;
+        let buffer = '';
+        let inMetadata = false;
+        let inContent = false;
+
+        function flushBuffer() {
+          if (!buffer.trim()) return;
+          // simplistic: if we are inside a commentary, append to its text
+          if (currentCommentary && currentVerse && currentSection) {
+            currentCommentary.commentary = (currentCommentary.commentary || '') + buffer.trim() + '\n';
+          } else if (currentVerse && currentSection) {
+            // could be original_text continuation
+            currentVerse.original_text = (currentVerse.original_text || '') + buffer.trim() + '\n';
+          }
+          buffer = '';
+        }
+
+        for (let line of lines) {
+          const trimmed = line.trim();
+          
+          // Metadata detection
+          if (trimmed.startsWith('**metadata**:')) {
+            inMetadata = true; inContent = false; continue;
+          }
+          if (inMetadata && trimmed.startsWith('- **content**:')) {
+            inMetadata = false; inContent = true; continue;
+          }
+          if (inMetadata && trimmed.startsWith('- **')) {
+            const match = trimmed.match(/^- \*\*(.+?)\*\*:\s*(.*)$/);
+            if (match) {
+              root.metadata[match[1].trim()] = match[2].trim().replace(/`/g, '');
+            }
+            continue;
+          }
+          
+          if (inContent) {
+            // content title
+            if (trimmed.startsWith('- **title**:')) {
+              const m = trimmed.match(/- \*\*title\*\*:\s*(.*)/);
+              if (m) root.content.title = m[1].trim();
+              continue;
+            }
+            // sections list
+            if (trimmed.startsWith('- **sections**:')) continue;
+            
+            // section item
+            if (trimmed.startsWith('- **Item ') || trimmed.match(/^- \*\*Item \d+\*\*:/)) {
+              flushBuffer();
+              const secMatch = trimmed.match(/- \*\*Item (\d+)\*\*:/);
+              if (secMatch) {
+                currentSection = { title: '', number: secMatch[1], verses: [] };
+                root.content.sections.push(currentSection);
+                currentVerse = null; currentCommentary = null;
+              }
+              continue;
+            }
+            if (currentSection && trimmed.startsWith('- **title**:')) {
+              const m = trimmed.match(/- \*\*title\*\*:\s*(.*)/);
+              if (m) currentSection.title = m[1].trim();
+              continue;
+            }
+            if (currentSection && trimmed.startsWith('- **number**:')) continue;
+            
+            // verse list within section
+            if (currentSection && trimmed.startsWith('- **verses**:')) continue;
+            if (currentSection && trimmed.match(/^- \*\*Item \d+\*\*:/) && trimmed.includes('verse_number')) {
+              flushBuffer();
+              const vMatch = trimmed.match(/- \*\*Item (\d+)\*\*:/);
+              if (vMatch) {
+                currentVerse = { verse_number: '', original_text: '', commentaries: [] };
+                currentSection.verses.push(currentVerse);
+                currentCommentary = null;
+              }
+              continue;
+            }
+            if (currentVerse && trimmed.startsWith('- **verse_number**:')) {
+              const m = trimmed.match(/- \*\*verse_number\*\*:\s*`?(.*?)`?$/);
+              if (m) currentVerse.verse_number = m[1].trim();
+              continue;
+            }
+            if (currentVerse && trimmed.startsWith('- **original_text**:')) {
+              const m = trimmed.match(/- \*\*original_text\*\*:\s*(.*)/);
+              if (m) currentVerse.original_text = (currentVerse.original_text || '') + m[1].trim() + '\n';
+              continue;
+            }
+            if (currentVerse && trimmed.startsWith('- **commentaries**:')) continue;
+            
+            // commentary item
+            if (currentVerse && trimmed.match(/^- \*\*Item \d+\*\*:/)) {
+              flushBuffer();
+              const cMatch = trimmed.match(/- \*\*Item (\d+)\*\*:/);
+              if (cMatch) {
+                currentCommentary = { author: '', commentary: '' };
+                currentVerse.commentaries.push(currentCommentary);
+              }
+              continue;
+            }
+            if (currentCommentary && trimmed.startsWith('- **author**:')) {
+              const m = trimmed.match(/- \*\*author\*\*:\s*(.*)/);
+              if (m) currentCommentary.author = m[1].trim();
+              continue;
+            }
+            if (currentCommentary && trimmed.startsWith('- **commentary**:')) {
+              const m = trimmed.match(/- \*\*commentary\*\*:\s*(.*)/);
+              if (m) currentCommentary.commentary = (currentCommentary.commentary || '') + m[1].trim() + '\n';
+              continue;
+            }
+            
+            // continuation lines (text that belongs to previous field)
+            if (trimmed && !trimmed.startsWith('-')) {
+              buffer += line + '\n';
+            }
+          }
+        }
+        flushBuffer();
+        return root;
+      }
+
+      function renderStructuredContent(parsed) {
+        const meta = parsed.metadata;
+        const content = parsed.content;
+        let html = '';
+
+        // Metadata table
+        html += `<div class="mb-8"><h2 class="text-xl font-bold text-indigo-800 mb-3">📋 Metadata</h2>`;
+        html += `<table class="meta-table"><tbody>`;
+        const metaFields = [
+          ['scripture_name','Scripture'],['slug','Slug'],['author','Author'],
+          ['year_of_composition','Year'],['category','Category'],['description','Description'],
+          ['language','Language'],['total_chapters','Chapters'],['total_verses','Verses']
+        ];
+        metaFields.forEach(([key,label]) => {
+          if (meta[key]) {
+            html += `<tr><td>${label}</td><td>${escapeHtml(meta[key])}</td></tr>`;
+          }
+        });
+        html += `</tbody></table></div>`;
+
+        // Content title
+        html += `<h2 class="text-2xl font-bold text-slate-800 mt-6 mb-4">📖 ${escapeHtml(content.title || '')}</h2>`;
+
+        // Sections
+        if (content.sections && content.sections.length) {
+          content.sections.forEach((section, secIdx) => {
+            html += `<div class="section-card">`;
+            html += `<h3 class="text-lg font-semibold text-indigo-700 mb-3">${escapeHtml(section.title || 'Section '+section.number)}</h3>`;
+            
+            if (section.verses && section.verses.length) {
+              section.verses.forEach((verse, vIdx) => {
+                const verseId = `sec${secIdx}-v${vIdx}`;
+                html += `<div class="mb-4 ml-2">`;
+                html += `<div class="flex items-center gap-2 text-sm font-mono text-slate-500 mb-1"><span class="bg-indigo-100 px-2 py-0.5 rounded-full">Verse ${escapeHtml(verse.verse_number)}</span></div>`;
+                
+                if (verse.original_text) {
+                  html += `<div class="verse-original">${escapeHtml(verse.original_text).replace(/\n/g, '<br>')}</div>`;
+                }
+
+                if (verse.commentaries && verse.commentaries.length) {
+                  html += `<details class="mt-2" open><summary class="text-indigo-600 hover:text-indigo-800 transition">📝 Commentaries (${verse.commentaries.length})</summary>`;
+                  html += `<div class="mt-2 space-y-2">`;
+                  verse.commentaries.forEach((comm, cIdx) => {
+                    const commId = `${verseId}-comm${cIdx}`;
+                    html += `<details class="commentary-block" open><summary class="font-medium text-slate-700">${escapeHtml(comm.author || 'Commentary')}</summary>`;
+                    html += `<div class="mt-2 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">${escapeHtml(comm.commentary || '')}</div>`;
+                    html += `</details>`;
+                  });
+                  html += `</div></details>`;
+                }
+                html += `</div>`;
+              });
+            }
+            html += `</div>`;
+          });
+        }
         return html;
       }
 
-      function showStatus(msg, isError = false) {
-        statusMessage.classList.remove('hidden');
-        statusText.textContent = msg;
-        statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
+      function updateWordCount(text) {
+        const words = text.split(/\s+/).filter(w => w.length > 0).length;
+        wordCountBadge.textContent = `📄 ${words} words`;
+        fileInfoIndicator.textContent = `${text.split('\n').length} lines • ${text.length} chars`;
       }
 
-      function hideStatus() {
-        statusMessage.classList.add('hidden');
-      }
-
-      // ----- Routing -----
+      // ----- Routing & rendering -----
       window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const selectedFile = urlParams.get('file');
@@ -291,12 +458,11 @@
       }
 
       function renderFileMode(fileName) {
-        currentFileName = fileName;
         homepageView.classList.add('hidden');
         fileView.classList.remove('hidden');
         navFileName.textContent = fileName;
         navFileName.classList.remove('hidden');
-        showStatus("Loading markdown file...");
+        showStatus("Loading structured markdown...");
         const filePath = dataFolder + fileName;
         fetch(filePath)
           .then(response => {
@@ -304,14 +470,11 @@
             return response.text();
           })
           .then(mdText => {
-            fullMarkdownText = mdText;
-            // render full markdown
-            const html = markdownToHtml(mdText);
+            fullRawText = mdText;
+            const parsed = parseCustomMarkdown(mdText);
+            const html = renderStructuredContent(parsed);
             mdContent.innerHTML = html;
-            // update word count
-            const words = mdText.split(/\s+/).filter(w => w.length > 0).length;
-            wordCountBadge.textContent = `📄 ${words} words`;
-            fileInfoIndicator.textContent = `${mdText.split('\n').length} lines • ${mdText.length} chars`;
+            updateWordCount(mdText);
             // reset search
             searchMatches = [];
             searchPointer = -1;
@@ -326,63 +489,41 @@
           });
       }
 
-      // ----- Search & highlight (plain text, across rendered HTML) -----
+      function showStatus(msg, isError = false) {
+        statusMessage.classList.remove('hidden');
+        statusText.textContent = msg;
+        statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
+      }
+      function hideStatus() { statusMessage.classList.add('hidden'); }
+
+      // ----- Search & highlight (works on rendered text) -----
       function performSearch(query) {
         currentSearchQuery = query.trim().toLowerCase();
         searchMatches = [];
         searchPointer = -1;
+        // remove old highlights
+        document.querySelectorAll('.mark-search').forEach(el => {
+          el.replaceWith(document.createTextNode(el.textContent));
+        });
         if (!currentSearchQuery) {
-          // remove all highlights
-          const content = mdContent;
-          const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
-          const nodes = [];
-          let node;
-          while (node = walker.nextNode()) nodes.push(node);
-          // restore original text
-          nodes.forEach(n => {
-            if (n.parentElement && n.parentElement.classList.contains('mark-search')) {
-              const parent = n.parentElement;
-              parent.replaceWith(parent.textContent);
-            }
-          });
           searchControls.classList.add('hidden');
           return;
         }
-
-        // First, remove old highlights
-        const content = mdContent;
-        const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+        const walker = document.createTreeWalker(mdContent, NodeFilter.SHOW_TEXT, null, false);
         const textNodes = [];
         let node;
         while (node = walker.nextNode()) textNodes.push(node);
-        textNodes.forEach(n => {
-          if (n.parentElement && n.parentElement.classList.contains('mark-search')) {
-            const parent = n.parentElement;
-            parent.replaceWith(parent.textContent);
-          }
-        });
-
-        // Now re-scan text nodes and highlight matches
-        const newWalker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
-        const nodesToProcess = [];
-        let n;
-        while (n = newWalker.nextNode()) nodesToProcess.push(n);
-
+        
         let matchCount = 0;
-        nodesToProcess.forEach(textNode => {
+        textNodes.forEach(textNode => {
           const text = textNode.textContent;
           const lower = text.toLowerCase();
           if (lower.includes(currentSearchQuery)) {
-            // highlight
             const fragment = document.createDocumentFragment();
             let lastIdx = 0;
             let idx = lower.indexOf(currentSearchQuery);
             while (idx !== -1) {
-              // before
-              if (idx > lastIdx) {
-                fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
-              }
-              // match
+              if (idx > lastIdx) fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
               const mark = document.createElement('span');
               mark.className = 'mark-search';
               mark.textContent = text.slice(idx, idx + currentSearchQuery.length);
@@ -391,22 +532,16 @@
               idx = lower.indexOf(currentSearchQuery, lastIdx);
               matchCount++;
             }
-            if (lastIdx < text.length) {
-              fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
-            }
+            if (lastIdx < text.length) fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
             textNode.replaceWith(fragment);
           }
         });
-
-        // collect match positions (for navigation we need to know which highlighted elements exist)
+        
         const marks = mdContent.querySelectorAll('.mark-search');
-        marks.forEach((el, i) => {
-          searchMatches.push(i);
-        });
+        marks.forEach(() => searchMatches.push(0)); // dummy array for length
         if (searchMatches.length) searchPointer = 0;
         updateSearchUI();
         if (searchPointer !== -1) scrollToMatch();
-        // store current query for navigation
       }
 
       function goToMatch(offset) {
@@ -422,7 +557,6 @@
         const target = marks[searchPointer];
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // briefly highlight
           target.style.transition = 'background 0.2s';
           target.style.background = '#fcd34d';
           setTimeout(() => { target.style.background = ''; }, 600);
@@ -430,17 +564,12 @@
       }
 
       function updateSearchUI() {
-        if (!currentSearchQuery) {
-          searchControls.classList.add('hidden');
-          return;
-        }
+        if (!currentSearchQuery) { searchControls.classList.add('hidden'); return; }
         searchControls.classList.remove('hidden');
         if (!searchMatches.length) {
           searchCount.textContent = '0/0';
-          searchCount.className = "text-xs font-mono text-rose-500 px-2";
         } else {
           searchCount.textContent = `${searchPointer+1}/${searchMatches.length}`;
-          searchCount.className = "text-xs font-mono text-slate-600 px-2";
         }
       }
 
@@ -449,7 +578,6 @@
         performSearch('');
       }
 
-      // ----- event listeners -----
       searchInput.addEventListener('input', (e) => {
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => performSearch(e.target.value), 200);
