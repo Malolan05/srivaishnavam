@@ -38,14 +38,37 @@
       padding: 0.75rem 1rem;
       border-bottom: 2px solid #e2e8f0;
       text-align: left;
+      white-space: nowrap;
+      min-width: 80px;
     }
     .md-table-wrap td {
       padding: 0.65rem 1rem;
       border-bottom: 1px solid #e9edf2;
       color: #334155;
+      max-width: 600px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      line-height: 1.6;
     }
     .md-table-wrap tr:last-child td { border-bottom: none; }
     .md-table-wrap tbody tr:hover { background: #f1f5fe; }
+    
+    /* Style for long text cells */
+    .md-table-wrap td.long-text {
+      min-width: 400px;
+      max-width: 600px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.6;
+    }
+    
+    /* Style for normal cells */
+    .md-table-wrap td.normal-text {
+      white-space: nowrap;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-700 font-sans min-h-screen pb-16" style="font-family: 'Inter', system-ui, sans-serif;">
@@ -195,6 +218,69 @@
         if (!str) return '';
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
       };
+
+      // ----- New function to wrap text at 100 characters with word breaks -----
+      function wrapText(text, maxLength = 100) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        
+        let result = '';
+        let remaining = text;
+        
+        while (remaining.length > maxLength) {
+          // Find the last space within the maxLength
+          let cutAt = remaining.lastIndexOf(' ', maxLength);
+          
+          // If no space found, cut at maxLength
+          if (cutAt === -1) {
+            cutAt = maxLength;
+          } else {
+            // If cutAt is 0 (meaning the first character is space), find next space
+            if (cutAt === 0) {
+              const nextSpace = remaining.indexOf(' ', 1);
+              cutAt = nextSpace !== -1 ? nextSpace : maxLength;
+            }
+          }
+          
+          // If cutAt is still 0 or invalid, force cut at maxLength
+          if (cutAt <= 0 || cutAt > maxLength) {
+            cutAt = maxLength;
+          }
+          
+          result += remaining.substring(0, cutAt) + '\n';
+          remaining = remaining.substring(cutAt).trimStart();
+        }
+        
+        result += remaining;
+        return result;
+      }
+
+      // ----- Modified highlight function to handle wrapped text -----
+      function highlightCell(rawCell, query) {
+        const cellStr = rawCell || '';
+        if (!query) {
+          // If no query, just wrap the text if needed
+          return escapeHtml(wrapText(cellStr));
+        }
+        
+        const lowerCell = cellStr.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        const idx = lowerCell.indexOf(lowerQuery);
+        if (idx === -1) {
+          return escapeHtml(wrapText(cellStr));
+        }
+        
+        // Wrap the text first, then highlight
+        const wrapped = wrapText(cellStr);
+        // For simplicity, we'll just escape and then highlight the matched text
+        const before = cellStr.slice(0, idx);
+        const match = cellStr.slice(idx, idx + query.length);
+        const after = cellStr.slice(idx + query.length);
+        
+        // Reconstruct with highlighting and wrapping
+        const highlighted = escapeHtml(before) + `<mark class="mark-search">${escapeHtml(match)}</mark>` + escapeHtml(after);
+        return escapeHtml(wrapText(highlighted));
+      }
 
       function showStatus(msg, isError = false) {
         statusMessage.classList.remove('hidden');
@@ -380,6 +466,7 @@
         }
       }
 
+      // ----- Modified renderTable function with cell wrapping -----
       function renderTable(query = '') {
         let html = `<thead class="bg-slate-50/90 backdrop-blur-sm border-b border-slate-200"><tr>`;
         currentHeaders.forEach((header, idx) => {
@@ -398,26 +485,26 @@
           html += `<tr data-row-idx="${rowIdx}" class="${rowClass}">`;
           row.forEach((cell, idx) => {
             const hiddenClass = visibleColumns[idx] ? '' : 'hidden';
-            const cellContent = isMatch ? highlightCell(cell, query) : escapeHtml(cell);
-            html += `<td data-col-idx="${idx}" class="px-6 py-3 text-sm text-slate-600 whitespace-nowrap ${hiddenClass}">${cellContent}</td>`;
+            let cellContent;
+            
+            if (isMatch) {
+              cellContent = highlightCell(cell, query);
+            } else {
+              // Wrap text if longer than 100 characters
+              const wrappedText = wrapText(cell);
+              cellContent = escapeHtml(wrappedText);
+            }
+            
+            // Check if the original cell is longer than 100 characters
+            const isLongText = (cell && cell.length > 100);
+            const cellClass = isLongText ? 'long-text' : 'normal-text';
+            
+            html += `<td data-col-idx="${idx}" class="px-6 py-3 text-sm text-slate-600 ${cellClass} ${hiddenClass}">${cellContent}</td>`;
           });
           html += `</tr>`;
         });
         html += `</tbody>`;
         dataTable.innerHTML = html;
-      }
-
-      function highlightCell(rawCell, query) {
-        const cellStr = rawCell || '';
-        if (!query) return escapeHtml(cellStr);
-        const lowerCell = cellStr.toLowerCase();
-        const lowerQuery = query.toLowerCase();
-        const idx = lowerCell.indexOf(lowerQuery);
-        if (idx === -1) return escapeHtml(cellStr);
-        const before = cellStr.slice(0, idx);
-        const match = cellStr.slice(idx, idx + query.length);
-        const after = cellStr.slice(idx + query.length);
-        return escapeHtml(before) + `<mark class="mark-search">${escapeHtml(match)}</mark>` + escapeHtml(after);
       }
 
       function performSearch(query) {
