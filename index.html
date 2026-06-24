@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Malolan • structured markdown viewer</title>
   <!-- Fonts & icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,8 +22,6 @@
       font-weight: 600;
       box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.4);
     }
-    .glass-panel { backdrop-filter: blur(10px); background: rgba(255,255,255,0.8); }
-    /* metadata table styling */
     .meta-table {
       border-collapse: collapse;
       width: 100%;
@@ -31,18 +29,20 @@
       border-radius: 1rem;
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      border: 1px solid #e2e8f0;
     }
     .meta-table td {
-      padding: 0.6rem 1rem;
+      padding: 0.75rem 1rem;
       border-bottom: 1px solid #f1f5f9;
-      vertical-align: middle;
+      vertical-align: top;
     }
     .meta-table td:first-child {
       font-weight: 600;
       color: #475569;
       background: #f8fafc;
-      width: 30%;
+      width: 25%;
       letter-spacing: 0.01em;
+      font-size: 0.85rem;
     }
     .meta-table tr:last-child td { border-bottom: none; }
     .commentary-block {
@@ -55,20 +55,22 @@
     }
     .commentary-block:hover { border-left-color: #818cf8; background: #f5f7ff; }
     .verse-original {
-      font-family: 'JetBrains Mono', monospace;
-      background: #fef9c3;
-      padding: 0.6rem 1rem;
+      font-family: 'JetBrains Mono', 'Noto Sans', monospace;
+      background: #fffbeb;
+      padding: 0.75rem 1rem;
       border-radius: 0.7rem;
       font-size: 0.9rem;
-      line-height: 1.6;
+      line-height: 1.7;
       color: #1e293b;
-      border: 1px solid #fde047;
+      border: 1px solid #fde68a;
       margin: 0.5rem 0;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     .section-card {
       background: white;
       border-radius: 1.25rem;
-      padding: 1.25rem;
+      padding: 1.5rem;
       box-shadow: 0 10px 25px -8px rgba(0,0,0,0.06);
       border: 1px solid #eef2ff;
       margin-bottom: 1.5rem;
@@ -80,25 +82,35 @@
       align-items: center;
       gap: 0.5rem;
       font-weight: 600;
-      color: #1e293b;
+      color: #4f46e5;
+      user-select: none;
     }
     details summary::-webkit-details-marker { display: none; }
     details summary::before {
       content: "▸";
-      font-size: 1.2rem;
+      font-size: 1rem;
       transition: transform 0.2s;
       display: inline-block;
-      color: #6366f1;
+      min-width: 16px;
     }
     details[open] > summary::before {
       transform: rotate(90deg);
     }
-    .toggle-btn {
-      transition: all 0.2s ease;
-      font-weight: 500;
+    .expand-all-btn {
+      background: white;
+      border: 1px solid #e2e8f0;
+      padding: 0.4rem 1rem;
+      border-radius: 2rem;
       font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #475569;
     }
-    .md-content h2 { font-size: 1.6rem; margin-top: 0.5rem; }
+    .expand-all-btn:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-700 font-sans min-h-screen pb-16" style="font-family: 'Inter', system-ui, sans-serif;">
@@ -158,8 +170,14 @@
         </div>
       </div>
 
+      <!-- Expand/Collapse All controls -->
+      <div class="flex gap-2 mb-4" id="expand-controls">
+        <button onclick="expandAllCommentaries()" class="expand-all-btn">📖 Expand All</button>
+        <button onclick="collapseAllCommentaries()" class="expand-all-btn">📕 Collapse All</button>
+      </div>
+
       <!-- Metadata & structured content -->
-      <div id="md-scroll-container" class="overflow-auto custom-scroll bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-6 md:p-8 border border-slate-200/80" style="max-height: 78vh;">
+      <div id="md-scroll-container" class="overflow-auto custom-scroll bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-6 md:p-8 border border-slate-200/80" style="max-height: 75vh;">
         <div id="md-content" class="md-content prose max-w-none">
           <!-- dynamically rendered structured markdown -->
         </div>
@@ -177,200 +195,242 @@
   </main>
 
   <script>
-    (function() {
-      // ----- CONFIGURATION -----
-      const mdFiles = [
-        "brahma-sutra-adhyaya-one.md",
-        "brahma-sutra-adhyaya-two.md",
-        "brahma-sutra-adhyaya-three.md",
-        "brahma-sutra-adhyaya-four.md",
-        "gitarthasangraha.md",
-        "brihadaranyaka-upanishad.md",
-        "chandogya-upanishad.md",
-        "katha-upanishad.md",
-        "kaushitaki-upanishad.md",
-        "shvetasvatara-upanishad.md",
-        "taittiriya-upanishad.md",
-        "upanishad-one.md",
-        "mimamsa-paribasha.md",
-        "mundaka-upanishad.md",
-        "natvacandrika-pramukhacapetika.md",
-        "purushakara-mimamsa.md",
-        "rahasyatrayasara.md",
-        "rahasyatrayasararthasangraha.md",
-        "shatadushani.md",
-        "smritimuktaphalam.md",
-        "stotraratna.md",
-        "tarkasangraha.md",
-        "tattvamuktakalapam.md",
-        "vedarthasangraha.md",
-      ];
-      const dataFolder = "data/";
+    // ----- CONFIGURATION -----
+    const mdFiles = [
+      "brahma-sutra-adhyaya-one.md",
+      "brahma-sutra-adhyaya-two.md",
+      "brahma-sutra-adhyaya-three.md",
+      "brahma-sutra-adhyaya-four.md",
+      "gitarthasangraha.md",
+      "brihadaranyaka-upanishad.md",
+      "chandogya-upanishad.md",
+      "katha-upanishad.md",
+      "kaushitaki-upanishad.md",
+      "shvetasvatara-upanishad.md",
+      "taittiriya-upanishad.md",
+      "upanishad-one.md",
+      "mimamsa-paribasha.md",
+      "mundaka-upanishad.md",
+      "natvacandrika-pramukhacapetika.md",
+      "purushakara-mimamsa.md",
+      "rahasyatrayasara.md",
+      "rahasyatrayasararthasangraha.md",
+      "shatadushani.md",
+      "smritimuktaphalam.md",
+      "stotraratna.md",
+      "tarkasangraha.md",
+      "tattvamuktakalapam.md",
+      "vedarthasangraha.md",
+    ];
+    const dataFolder = "data/";
 
-      // DOM elements
-      const homepageView = document.getElementById('homepage-view');
-      const fileView = document.getElementById('file-view');
-      const fileList = document.getElementById('file-list');
-      const mdContent = document.getElementById('md-content');
-      const statusMessage = document.getElementById('status-message');
-      const statusText = document.getElementById('status-text');
-      const navFileName = document.getElementById('nav-file-name');
-      const searchInput = document.getElementById('search-input');
-      const searchControls = document.getElementById('search-controls');
-      const searchCount = document.getElementById('search-count');
-      const searchPrevBtn = document.getElementById('search-prev');
-      const searchNextBtn = document.getElementById('search-next');
-      const searchClearBtn = document.getElementById('search-clear');
-      const fileInfoIndicator = document.getElementById('file-info-indicator');
-      const wordCountBadge = document.getElementById('word-count-badge');
+    // DOM elements
+    const homepageView = document.getElementById('homepage-view');
+    const fileView = document.getElementById('file-view');
+    const fileList = document.getElementById('file-list');
+    const mdContent = document.getElementById('md-content');
+    const statusMessage = document.getElementById('status-message');
+    const statusText = document.getElementById('status-text');
+    const navFileName = document.getElementById('nav-file-name');
+    const searchInput = document.getElementById('search-input');
+    const searchControls = document.getElementById('search-controls');
+    const searchCount = document.getElementById('search-count');
+    const searchPrevBtn = document.getElementById('search-prev');
+    const searchNextBtn = document.getElementById('search-next');
+    const searchClearBtn = document.getElementById('search-clear');
+    const fileInfoIndicator = document.getElementById('file-info-indicator');
+    const wordCountBadge = document.getElementById('word-count-badge');
 
-      let fullRawText = '';
-      let searchMatches = [];
-      let searchPointer = -1;
-      let currentSearchQuery = '';
-      let searchDebounceTimer = null;
+    let fullRawText = '';
+    let searchMatches = [];
+    let searchPointer = -1;
+    let currentSearchQuery = '';
+    let searchDebounceTimer = null;
 
-      const escapeHtml = (str) => {
-        if (!str) return '';
-        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-      };
+    const escapeHtml = (str) => {
+      if (!str) return '';
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    };
 
-      // ----- PARSER for custom .md structure -----
-      function parseCustomMarkdown(mdText) {
-        const lines = mdText.split(/\r?\n/);
-        const root = { metadata: {}, content: { title: '', sections: [] } };
-        let currentSection = null;
-        let currentVerse = null;
-        let currentCommentary = null;
-        let buffer = '';
-        let inMetadata = false;
-        let inContent = false;
-
-        function flushBuffer() {
-          if (!buffer.trim()) return;
-          // simplistic: if we are inside a commentary, append to its text
-          if (currentCommentary && currentVerse && currentSection) {
-            currentCommentary.commentary = (currentCommentary.commentary || '') + buffer.trim() + '\n';
-          } else if (currentVerse && currentSection) {
-            // could be original_text continuation
-            currentVerse.original_text = (currentVerse.original_text || '') + buffer.trim() + '\n';
-          }
-          buffer = '';
-        }
-
-        for (let line of lines) {
-          const trimmed = line.trim();
-          
-          // Metadata detection
-          if (trimmed.startsWith('**metadata**:')) {
-            inMetadata = true; inContent = false; continue;
-          }
-          if (inMetadata && trimmed.startsWith('- **content**:')) {
-            inMetadata = false; inContent = true; continue;
-          }
-          if (inMetadata && trimmed.startsWith('- **')) {
-            const match = trimmed.match(/^- \*\*(.+?)\*\*:\s*(.*)$/);
-            if (match) {
-              root.metadata[match[1].trim()] = match[2].trim().replace(/`/g, '');
-            }
-            continue;
-          }
-          
-          if (inContent) {
-            // content title
-            if (trimmed.startsWith('- **title**:')) {
-              const m = trimmed.match(/- \*\*title\*\*:\s*(.*)/);
-              if (m) root.content.title = m[1].trim();
-              continue;
-            }
-            // sections list
-            if (trimmed.startsWith('- **sections**:')) continue;
-            
-            // section item
-            if (trimmed.startsWith('- **Item ') || trimmed.match(/^- \*\*Item \d+\*\*:/)) {
-              flushBuffer();
-              const secMatch = trimmed.match(/- \*\*Item (\d+)\*\*:/);
-              if (secMatch) {
-                currentSection = { title: '', number: secMatch[1], verses: [] };
-                root.content.sections.push(currentSection);
-                currentVerse = null; currentCommentary = null;
-              }
-              continue;
-            }
-            if (currentSection && trimmed.startsWith('- **title**:')) {
-              const m = trimmed.match(/- \*\*title\*\*:\s*(.*)/);
-              if (m) currentSection.title = m[1].trim();
-              continue;
-            }
-            if (currentSection && trimmed.startsWith('- **number**:')) continue;
-            
-            // verse list within section
-            if (currentSection && trimmed.startsWith('- **verses**:')) continue;
-            if (currentSection && trimmed.match(/^- \*\*Item \d+\*\*:/) && trimmed.includes('verse_number')) {
-              flushBuffer();
-              const vMatch = trimmed.match(/- \*\*Item (\d+)\*\*:/);
-              if (vMatch) {
-                currentVerse = { verse_number: '', original_text: '', commentaries: [] };
-                currentSection.verses.push(currentVerse);
-                currentCommentary = null;
-              }
-              continue;
-            }
-            if (currentVerse && trimmed.startsWith('- **verse_number**:')) {
-              const m = trimmed.match(/- \*\*verse_number\*\*:\s*`?(.*?)`?$/);
-              if (m) currentVerse.verse_number = m[1].trim();
-              continue;
-            }
-            if (currentVerse && trimmed.startsWith('- **original_text**:')) {
-              const m = trimmed.match(/- \*\*original_text\*\*:\s*(.*)/);
-              if (m) currentVerse.original_text = (currentVerse.original_text || '') + m[1].trim() + '\n';
-              continue;
-            }
-            if (currentVerse && trimmed.startsWith('- **commentaries**:')) continue;
-            
-            // commentary item
-            if (currentVerse && trimmed.match(/^- \*\*Item \d+\*\*:/)) {
-              flushBuffer();
-              const cMatch = trimmed.match(/- \*\*Item (\d+)\*\*:/);
-              if (cMatch) {
-                currentCommentary = { author: '', commentary: '' };
-                currentVerse.commentaries.push(currentCommentary);
-              }
-              continue;
-            }
-            if (currentCommentary && trimmed.startsWith('- **author**:')) {
-              const m = trimmed.match(/- \*\*author\*\*:\s*(.*)/);
-              if (m) currentCommentary.author = m[1].trim();
-              continue;
-            }
-            if (currentCommentary && trimmed.startsWith('- **commentary**:')) {
-              const m = trimmed.match(/- \*\*commentary\*\*:\s*(.*)/);
-              if (m) currentCommentary.commentary = (currentCommentary.commentary || '') + m[1].trim() + '\n';
-              continue;
-            }
-            
-            // continuation lines (text that belongs to previous field)
-            if (trimmed && !trimmed.startsWith('-')) {
-              buffer += line + '\n';
-            }
-          }
-        }
-        flushBuffer();
-        return root;
+    // ----- YAML-like PARSER for custom .md structure -----
+    function parseCustomFormat(mdText) {
+      const root = { metadata: {}, content: { title: '', sections: [] } };
+      
+      // Split into metadata and content sections
+      const metadataMatch = mdText.match(/\*\*metadata\*\*:([\s\S]*?)(?=\*\*content\*\*:|$)/);
+      const contentMatch = mdText.match(/\*\*content\*\*:([\s\S]*)/);
+      
+      if (metadataMatch) {
+        parseMetadata(metadataMatch[1], root.metadata);
       }
+      
+      if (contentMatch) {
+        parseContent(contentMatch[1], root.content);
+      }
+      
+      return root;
+    }
 
-      function renderStructuredContent(parsed) {
-        const meta = parsed.metadata;
-        const content = parsed.content;
-        let html = '';
+    function parseMetadata(text, metadata) {
+      const lines = text.split('\n');
+      for (let line of lines) {
+        const match = line.match(/^\s*-\s*\*\*(.+?)\*\*:\s*(.+)$/);
+        if (match) {
+          const key = match[1].trim();
+          const value = match[2].trim().replace(/`/g, '');
+          metadata[key] = value;
+        }
+      }
+    }
 
-        // Metadata table
-        html += `<div class="mb-8"><h2 class="text-xl font-bold text-indigo-800 mb-3">📋 Metadata</h2>`;
+    function parseContent(text, content) {
+      const lines = text.split('\n');
+      let i = 0;
+      
+      while (i < lines.length) {
+        const line = lines[i];
+        
+        // Parse title
+        const titleMatch = line.match(/^\s*-\s*\*\*title\*\*:\s*(.+)$/);
+        if (titleMatch) {
+          content.title = titleMatch[1].trim();
+          i++;
+          continue;
+        }
+        
+        // Parse sections
+        if (line.match(/^\s*-\s*\*\*sections\*\*:/)) {
+          i++;
+          continue;
+        }
+        
+        // Section item
+        const sectionMatch = line.match(/^\s*-\s*\*\*Item (\d+)\*\*:/);
+        if (sectionMatch) {
+          const section = { title: '', number: sectionMatch[1], verses: [] };
+          content.sections.push(section);
+          i++;
+          
+          // Parse section details
+          while (i < lines.length && lines[i].trim().startsWith('-')) {
+            const sLine = lines[i];
+            const sTitleMatch = sLine.match(/^\s*-\s*\*\*title\*\*:\s*(.+)$/);
+            if (sTitleMatch) {
+              section.title = sTitleMatch[1].trim();
+              i++;
+              continue;
+            }
+            
+            const sNumberMatch = sLine.match(/^\s*-\s*\*\*number\*\*:\s*`?(\d+)`?/);
+            if (sNumberMatch) {
+              section.number = sNumberMatch[1];
+              i++;
+              continue;
+            }
+            
+            if (sLine.match(/^\s*-\s*\*\*verses\*\*:/)) {
+              i++;
+              continue;
+            }
+            
+            // Verse item
+            const verseMatch = sLine.match(/^\s*-\s*\*\*Item (\d+)\*\*:/);
+            if (verseMatch) {
+              const verse = { verse_number: '', original_text: '', commentaries: [] };
+              section.verses.push(verse);
+              i++;
+              
+              // Parse verse details
+              while (i < lines.length && lines[i].trim().startsWith('-')) {
+                const vLine = lines[i];
+                const vNumMatch = vLine.match(/^\s*-\s*\*\*verse_number\*\*:\s*`?(\d+)`?/);
+                if (vNumMatch) {
+                  verse.verse_number = vNumMatch[1];
+                  i++;
+                  continue;
+                }
+                
+                const origMatch = vLine.match(/^\s*-\s*\*\*original_text\*\*:\s*(.*)/);
+                if (origMatch) {
+                  verse.original_text = origMatch[1];
+                  // Check for continuation lines (indented or not starting with -)
+                  i++;
+                  while (i < lines.length && lines[i].trim() && !lines[i].trim().startsWith('-')) {
+                    verse.original_text += '\n' + lines[i];
+                    i++;
+                  }
+                  continue;
+                }
+                
+                if (vLine.match(/^\s*-\s*\*\*commentaries\*\*:/)) {
+                  i++;
+                  continue;
+                }
+                
+                // Commentary item
+                const commMatch = vLine.match(/^\s*-\s*\*\*Item (\d+)\*\*:/);
+                if (commMatch) {
+                  const commentary = { author: '', commentary: '' };
+                  verse.commentaries.push(commentary);
+                  i++;
+                  
+                  // Parse commentary details
+                  while (i < lines.length && lines[i].trim().startsWith('-')) {
+                    const cLine = lines[i];
+                    const authMatch = cLine.match(/^\s*-\s*\*\*author\*\*:\s*(.*)/);
+                    if (authMatch) {
+                      commentary.author = authMatch[1].trim();
+                      i++;
+                      continue;
+                    }
+                    
+                    const commTextMatch = cLine.match(/^\s*-\s*\*\*commentary\*\*:\s*(.*)/);
+                    if (commTextMatch) {
+                      commentary.commentary = commTextMatch[1];
+                      i++;
+                      // Collect continuation lines
+                      while (i < lines.length && lines[i].trim() && !lines[i].trim().startsWith('-')) {
+                        commentary.commentary += '\n' + lines[i];
+                        i++;
+                      }
+                      continue;
+                    }
+                    break;
+                  }
+                  continue;
+                }
+                break;
+              }
+              continue;
+            }
+            break;
+          }
+          continue;
+        }
+        i++;
+      }
+    }
+
+    function renderStructuredContent(parsed) {
+      const meta = parsed.metadata;
+      const content = parsed.content;
+      let html = '';
+
+      // Metadata table
+      if (Object.keys(meta).length > 0) {
+        html += `<div class="mb-8">`;
+        html += `<h2 class="text-xl font-bold text-indigo-800 mb-3">📋 Metadata</h2>`;
         html += `<table class="meta-table"><tbody>`;
         const metaFields = [
-          ['scripture_name','Scripture'],['slug','Slug'],['author','Author'],
-          ['year_of_composition','Year'],['category','Category'],['description','Description'],
-          ['language','Language'],['total_chapters','Chapters'],['total_verses','Verses']
+          ['scripture_name','Scripture Name'],
+          ['slug','Slug'],
+          ['author','Author'],
+          ['year_of_composition','Year of Composition'],
+          ['category','Category'],
+          ['description','Description'],
+          ['language','Language'],
+          ['total_chapters','Total Chapters'],
+          ['total_verses','Total Verses']
         ];
         metaFields.forEach(([key,label]) => {
           if (meta[key]) {
@@ -378,233 +438,303 @@
           }
         });
         html += `</tbody></table></div>`;
+      }
 
-        // Content title
-        html += `<h2 class="text-2xl font-bold text-slate-800 mt-6 mb-4">📖 ${escapeHtml(content.title || '')}</h2>`;
+      // Content title
+      if (content.title) {
+        html += `<h2 class="text-2xl font-bold text-slate-800 mt-6 mb-4">📖 ${escapeHtml(content.title)}</h2>`;
+      }
 
-        // Sections
-        if (content.sections && content.sections.length) {
-          content.sections.forEach((section, secIdx) => {
-            html += `<div class="section-card">`;
-            html += `<h3 class="text-lg font-semibold text-indigo-700 mb-3">${escapeHtml(section.title || 'Section '+section.number)}</h3>`;
-            
-            if (section.verses && section.verses.length) {
-              section.verses.forEach((verse, vIdx) => {
-                const verseId = `sec${secIdx}-v${vIdx}`;
-                html += `<div class="mb-4 ml-2">`;
-                html += `<div class="flex items-center gap-2 text-sm font-mono text-slate-500 mb-1"><span class="bg-indigo-100 px-2 py-0.5 rounded-full">Verse ${escapeHtml(verse.verse_number)}</span></div>`;
-                
-                if (verse.original_text) {
-                  html += `<div class="verse-original">${escapeHtml(verse.original_text).replace(/\n/g, '<br>')}</div>`;
-                }
+      // Sections
+      if (content.sections && content.sections.length) {
+        content.sections.forEach((section, secIdx) => {
+          html += `<div class="section-card">`;
+          html += `<h3 class="text-lg font-semibold text-indigo-700 mb-3">${escapeHtml(section.title || 'Section ' + section.number)}</h3>`;
+          
+          if (section.verses && section.verses.length) {
+            section.verses.forEach((verse, vIdx) => {
+              const verseId = `sec${secIdx}-v${vIdx}`;
+              html += `<div class="mb-4 ml-2">`;
+              html += `<div class="flex items-center gap-2 text-sm font-mono text-slate-500 mb-1">`;
+              html += `<span class="bg-indigo-100 px-2 py-0.5 rounded-full">Verse ${escapeHtml(verse.verse_number)}</span>`;
+              html += `</div>`;
+              
+              if (verse.original_text) {
+                html += `<div class="verse-original">${escapeHtml(verse.original_text)}</div>`;
+              }
 
-                if (verse.commentaries && verse.commentaries.length) {
-                  html += `<details class="mt-2" open><summary class="text-indigo-600 hover:text-indigo-800 transition">📝 Commentaries (${verse.commentaries.length})</summary>`;
-                  html += `<div class="mt-2 space-y-2">`;
-                  verse.commentaries.forEach((comm, cIdx) => {
-                    const commId = `${verseId}-comm${cIdx}`;
-                    html += `<details class="commentary-block" open><summary class="font-medium text-slate-700">${escapeHtml(comm.author || 'Commentary')}</summary>`;
-                    html += `<div class="mt-2 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">${escapeHtml(comm.commentary || '')}</div>`;
-                    html += `</details>`;
-                  });
-                  html += `</div></details>`;
-                }
-                html += `</div>`;
-              });
-            }
-            html += `</div>`;
+              if (verse.commentaries && verse.commentaries.length) {
+                const commDetailsId = `${verseId}-commentaries`;
+                html += `<details class="mt-2 commentary-group" open id="${commDetailsId}">`;
+                html += `<summary class="text-indigo-600 hover:text-indigo-800 transition">📝 Commentaries (${verse.commentaries.length})</summary>`;
+                html += `<div class="mt-2 space-y-2">`;
+                verse.commentaries.forEach((comm, cIdx) => {
+                  const commId = `${verseId}-comm${cIdx}`;
+                  html += `<details class="commentary-block commentary-item" open>`;
+                  html += `<summary class="font-medium text-slate-700">${escapeHtml(comm.author || 'Commentary')}</summary>`;
+                  html += `<div class="mt-2 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">${escapeHtml(comm.commentary || '')}</div>`;
+                  html += `</details>`;
+                });
+                html += `</div></details>`;
+              }
+              html += `</div>`;
+            });
+          }
+          html += `</div>`;
+        });
+      }
+
+      // If no structured content found, display raw text
+      if (!content.title && (!content.sections || content.sections.length === 0)) {
+        html += `<div class="text-slate-500 italic">No structured content found. Displaying raw text:</div>`;
+        html += `<pre class="bg-slate-50 p-4 rounded-lg text-sm">${escapeHtml(fullRawText)}</pre>`;
+      }
+
+      return html;
+    }
+
+    function updateWordCount(text) {
+      const words = text.split(/\s+/).filter(w => w.length > 0).length;
+      wordCountBadge.textContent = `📄 ${words} words`;
+      fileInfoIndicator.textContent = `${text.split('\n').length} lines • ${text.length} chars`;
+    }
+
+    // ----- Expand/Collapse functions -----
+    window.expandAllCommentaries = function() {
+      document.querySelectorAll('.commentary-group, .commentary-item').forEach(el => {
+        el.setAttribute('open', '');
+      });
+    };
+
+    window.collapseAllCommentaries = function() {
+      document.querySelectorAll('.commentary-group, .commentary-item').forEach(el => {
+        el.removeAttribute('open');
+      });
+    };
+
+    // ----- Routing & rendering -----
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const selectedFile = urlParams.get('file');
+      if (selectedFile && mdFiles.includes(selectedFile)) {
+        renderFileMode(selectedFile);
+      } else {
+        renderHomeMode();
+      }
+    });
+
+    function renderHomeMode() {
+      homepageView.classList.remove('hidden');
+      fileView.classList.add('hidden');
+      document.getElementById('expand-controls').classList.add('hidden');
+      fileList.innerHTML = '';
+      mdFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.className = "group bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300";
+        li.innerHTML = `
+          <a href="?file=${encodeURIComponent(file)}" class="block">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">📄</span>
+                <span class="font-semibold text-slate-800 group-hover:text-indigo-700 transition">${escapeHtml(file)}</span>
+              </div>
+              <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full group-hover:bg-indigo-100 transition">Open →</span>
+            </div>
+          </a>
+        `;
+        fileList.appendChild(li);
+      });
+    }
+
+    function renderFileMode(fileName) {
+      homepageView.classList.add('hidden');
+      fileView.classList.remove('hidden');
+      document.getElementById('expand-controls').classList.remove('hidden');
+      navFileName.textContent = fileName;
+      navFileName.classList.remove('hidden');
+      showStatus("Loading structured markdown...");
+      
+      const filePath = dataFolder + fileName;
+      fetch(filePath)
+        .then(response => {
+          if (!response.ok) throw new Error(`File not found: ${fileName}`);
+          return response.text();
+        })
+        .then(mdText => {
+          fullRawText = mdText;
+          const parsed = parseCustomFormat(mdText);
+          const html = renderStructuredContent(parsed);
+          mdContent.innerHTML = html;
+          updateWordCount(mdText);
+          // Reset search
+          searchMatches = [];
+          searchPointer = -1;
+          currentSearchQuery = '';
+          searchInput.value = '';
+          searchControls.classList.add('hidden');
+          // Remove old highlights
+          document.querySelectorAll('.mark-search').forEach(el => {
+            el.replaceWith(document.createTextNode(el.textContent));
           });
-        }
-        return html;
-      }
+          hideStatus();
+        })
+        .catch((err) => {
+          console.error(err);
+          showStatus(`Failed to load "${fileName}". ${err.message}`, true);
+        });
+    }
 
-      function updateWordCount(text) {
-        const words = text.split(/\s+/).filter(w => w.length > 0).length;
-        wordCountBadge.textContent = `📄 ${words} words`;
-        fileInfoIndicator.textContent = `${text.split('\n').length} lines • ${text.length} chars`;
-      }
+    function showStatus(msg, isError = false) {
+      statusMessage.classList.remove('hidden');
+      statusText.textContent = msg;
+      statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
+    }
+    
+    function hideStatus() { 
+      statusMessage.classList.add('hidden'); 
+    }
 
-      // ----- Routing & rendering -----
-      window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const selectedFile = urlParams.get('file');
-        if (selectedFile && mdFiles.includes(selectedFile)) {
-          renderFileMode(selectedFile);
-        } else {
-          renderHomeMode();
+    // ----- Search & highlight -----
+    function performSearch(query) {
+      currentSearchQuery = query.trim().toLowerCase();
+      searchMatches = [];
+      searchPointer = -1;
+      
+      // Remove old highlights
+      document.querySelectorAll('.mark-search').forEach(el => {
+        el.replaceWith(document.createTextNode(el.textContent));
+      });
+      
+      if (!currentSearchQuery) {
+        searchControls.classList.add('hidden');
+        return;
+      }
+      
+      const walker = document.createTreeWalker(mdContent, NodeFilter.SHOW_TEXT, {
+        acceptNode: function(node) {
+          // Skip nodes inside script/style or already highlighted
+          if (node.parentElement && node.parentElement.classList.contains('mark-search')) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
         }
       });
-
-      function renderHomeMode() {
-        homepageView.classList.remove('hidden');
-        fileView.classList.add('hidden');
-        fileList.innerHTML = '';
-        mdFiles.forEach(file => {
-          const li = document.createElement('li');
-          li.className = "group bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300";
-          li.innerHTML = `
-            <a href="?file=${encodeURIComponent(file)}" class="block">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span class="text-2xl">📄</span>
-                  <span class="font-semibold text-slate-800 group-hover:text-indigo-700 transition">${escapeHtml(file)}</span>
-                </div>
-                <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full group-hover:bg-indigo-100 transition">Open →</span>
-              </div>
-            </a>
-          `;
-          fileList.appendChild(li);
-        });
+      
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        textNodes.push(node);
       }
-
-      function renderFileMode(fileName) {
-        homepageView.classList.add('hidden');
-        fileView.classList.remove('hidden');
-        navFileName.textContent = fileName;
-        navFileName.classList.remove('hidden');
-        showStatus("Loading structured markdown...");
-        const filePath = dataFolder + fileName;
-        fetch(filePath)
-          .then(response => {
-            if (!response.ok) throw new Error("File not found");
-            return response.text();
-          })
-          .then(mdText => {
-            fullRawText = mdText;
-            const parsed = parseCustomMarkdown(mdText);
-            const html = renderStructuredContent(parsed);
-            mdContent.innerHTML = html;
-            updateWordCount(mdText);
-            // reset search
-            searchMatches = [];
-            searchPointer = -1;
-            currentSearchQuery = '';
-            searchInput.value = '';
-            searchControls.classList.add('hidden');
-            hideStatus();
-          })
-          .catch((err) => {
-            console.error(err);
-            showStatus(`Failed to load "${fileName}".`, true);
-          });
-      }
-
-      function showStatus(msg, isError = false) {
-        statusMessage.classList.remove('hidden');
-        statusText.textContent = msg;
-        statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
-      }
-      function hideStatus() { statusMessage.classList.add('hidden'); }
-
-      // ----- Search & highlight (works on rendered text) -----
-      function performSearch(query) {
-        currentSearchQuery = query.trim().toLowerCase();
-        searchMatches = [];
-        searchPointer = -1;
-        // remove old highlights
-        document.querySelectorAll('.mark-search').forEach(el => {
-          el.replaceWith(document.createTextNode(el.textContent));
-        });
-        if (!currentSearchQuery) {
-          searchControls.classList.add('hidden');
-          return;
-        }
-        const walker = document.createTreeWalker(mdContent, NodeFilter.SHOW_TEXT, null, false);
-        const textNodes = [];
-        let node;
-        while (node = walker.nextNode()) textNodes.push(node);
-        
-        let matchCount = 0;
-        textNodes.forEach(textNode => {
-          const text = textNode.textContent;
-          const lower = text.toLowerCase();
-          if (lower.includes(currentSearchQuery)) {
-            const fragment = document.createDocumentFragment();
-            let lastIdx = 0;
-            let idx = lower.indexOf(currentSearchQuery);
-            while (idx !== -1) {
-              if (idx > lastIdx) fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
-              const mark = document.createElement('span');
-              mark.className = 'mark-search';
-              mark.textContent = text.slice(idx, idx + currentSearchQuery.length);
-              fragment.appendChild(mark);
-              lastIdx = idx + currentSearchQuery.length;
-              idx = lower.indexOf(currentSearchQuery, lastIdx);
-              matchCount++;
+      
+      textNodes.forEach(textNode => {
+        const text = textNode.textContent;
+        const lower = text.toLowerCase();
+        if (lower.includes(currentSearchQuery)) {
+          const fragment = document.createDocumentFragment();
+          let lastIdx = 0;
+          let idx = lower.indexOf(currentSearchQuery);
+          while (idx !== -1) {
+            if (idx > lastIdx) {
+              fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
             }
-            if (lastIdx < text.length) fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
-            textNode.replaceWith(fragment);
+            const mark = document.createElement('span');
+            mark.className = 'mark-search';
+            mark.textContent = text.slice(idx, idx + currentSearchQuery.length);
+            fragment.appendChild(mark);
+            lastIdx = idx + currentSearchQuery.length;
+            idx = lower.indexOf(currentSearchQuery, lastIdx);
           }
-        });
-        
-        const marks = mdContent.querySelectorAll('.mark-search');
-        marks.forEach(() => searchMatches.push(0)); // dummy array for length
-        if (searchMatches.length) searchPointer = 0;
-        updateSearchUI();
-        if (searchPointer !== -1) scrollToMatch();
+          if (lastIdx < text.length) {
+            fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
+          }
+          textNode.replaceWith(fragment);
+        }
+      });
+      
+      // Collect all mark elements
+      const marks = mdContent.querySelectorAll('.mark-search');
+      searchMatches = Array.from(marks);
+      
+      if (searchMatches.length > 0) {
+        searchPointer = 0;
       }
-
-      function goToMatch(offset) {
-        if (!searchMatches.length) return;
-        searchPointer = (searchPointer + offset + searchMatches.length) % searchMatches.length;
-        updateSearchUI();
+      
+      updateSearchUI();
+      if (searchPointer !== -1) {
         scrollToMatch();
       }
+    }
 
-      function scrollToMatch() {
-        if (searchPointer < 0 || searchPointer >= searchMatches.length) return;
-        const marks = mdContent.querySelectorAll('.mark-search');
-        const target = marks[searchPointer];
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          target.style.transition = 'background 0.2s';
-          target.style.background = '#fcd34d';
-          setTimeout(() => { target.style.background = ''; }, 600);
-        }
+    function goToMatch(offset) {
+      if (!searchMatches.length) return;
+      searchPointer = (searchPointer + offset + searchMatches.length) % searchMatches.length;
+      updateSearchUI();
+      scrollToMatch();
+    }
+
+    function scrollToMatch() {
+      if (searchPointer < 0 || searchPointer >= searchMatches.length) return;
+      const target = searchMatches[searchPointer];
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Briefly highlight current match
+        target.style.transition = 'background 0.2s, box-shadow 0.2s';
+        target.style.background = '#fbbf24';
+        target.style.boxShadow = '0 0 0 3px rgba(251, 191, 36, 0.5)';
+        setTimeout(() => { 
+          target.style.background = ''; 
+          target.style.boxShadow = ''; 
+        }, 800);
       }
+    }
 
-      function updateSearchUI() {
-        if (!currentSearchQuery) { searchControls.classList.add('hidden'); return; }
+    function updateSearchUI() {
+      if (!currentSearchQuery || searchMatches.length === 0) {
         searchControls.classList.remove('hidden');
-        if (!searchMatches.length) {
-          searchCount.textContent = '0/0';
-        } else {
-          searchCount.textContent = `${searchPointer+1}/${searchMatches.length}`;
-        }
+        searchCount.textContent = searchMatches.length === 0 && currentSearchQuery ? '0/0' : '';
+        if (!currentSearchQuery) searchControls.classList.add('hidden');
+        return;
       }
+      searchControls.classList.remove('hidden');
+      searchCount.textContent = `${searchPointer + 1}/${searchMatches.length}`;
+    }
 
-      function clearSearch() {
-        searchInput.value = '';
-        performSearch('');
+    function clearSearch() {
+      searchInput.value = '';
+      performSearch('');
+    }
+
+    // Search event listeners
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => performSearch(e.target.value), 250);
+    });
+    
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (searchMatches.length) goToMatch(e.shiftKey ? -1 : 1);
+      } else if (e.key === 'Escape') {
+        clearSearch();
+        searchInput.blur();
       }
+    });
+    
+    searchPrevBtn.addEventListener('click', () => goToMatch(-1));
+    searchNextBtn.addEventListener('click', () => goToMatch(1));
+    searchClearBtn.addEventListener('click', () => { clearSearch(); searchInput.focus(); });
 
-      searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => performSearch(e.target.value), 200);
-      });
-      searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (searchMatches.length) goToMatch(e.shiftKey ? -1 : 1);
-        } else if (e.key === 'Escape') {
-          clearSearch();
-          searchInput.blur();
-        }
-      });
-      searchPrevBtn.addEventListener('click', () => goToMatch(-1));
-      searchNextBtn.addEventListener('click', () => goToMatch(1));
-      searchClearBtn.addEventListener('click', () => { clearSearch(); searchInput.focus(); });
+    // Global keyboard shortcut for search
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && !fileView.classList.contains('hidden')) {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
 
-      document.addEventListener('keydown', (e) => {
-        if (e.key === '/' && !fileView.classList.contains('hidden')) {
-          const tag = document.activeElement?.tagName;
-          if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-          e.preventDefault();
-          searchInput.focus();
-        }
-      });
-
-    })();
   </script>
 </body>
 </html>
