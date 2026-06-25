@@ -103,6 +103,26 @@
     }
     .nav-btn:hover { background: var(--accent-dim); border-color: var(--border-strong); color: var(--accent-text); }
 
+    /* ═══ FONT SIZE CONTROL ═══ */
+    #fz-control {
+      display: flex; align-items: center; gap: 0;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #fz-control .nav-btn {
+      border: none; border-radius: 0;
+      padding: 0.28rem 0.55rem;
+      font-family: var(--font-mono);
+    }
+    #fz-control .nav-btn:not(:last-child) { border-right: 1px solid var(--border); }
+    #fz-control .nav-btn:disabled {
+      opacity: 0.35; cursor: not-allowed; background: none; color: var(--text-muted);
+    }
+    #fz-level {
+      font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);
+      padding: 0 0.55rem; min-width: 2.6rem; text-align: center; user-select: none;
+    }
+
     /* ═══ LAYOUT ═══ */
     #shell { display: flex; padding-top: var(--nav-h); min-height: 100vh; }
 
@@ -139,6 +159,47 @@
       font-size: 0.68rem; color: var(--text-muted);
       float: right; margin-top: 1px;
     }
+
+    /* ═══ TOC SECTION DROPDOWN (sidebar verse list) ═══ */
+    .toc-section { border-left: 2px solid transparent; }
+    .toc-item-row {
+      display: flex; align-items: stretch;
+    }
+    .toc-item-row .toc-item { flex: 1; min-width: 0; }
+    .toc-chevron-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); width: 1.6rem; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.1s;
+    }
+    .toc-chevron-btn:hover { color: var(--accent); }
+    .toc-chevron-btn svg { transition: transform 0.18s; }
+    .toc-chevron-btn.open svg { transform: rotate(90deg); }
+    .toc-verses {
+      display: none;
+      flex-direction: column;
+      padding: 0.1rem 0 0.4rem;
+    }
+    .toc-verses.open { display: flex; }
+    .toc-verse-item {
+      display: flex; align-items: baseline; gap: 0.45rem;
+      padding: 0.22rem 1rem 0.22rem 2.1rem;
+      font-size: 0.74rem; color: var(--text-muted);
+      text-decoration: none; cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: all 0.1s;
+    }
+    .toc-verse-item:hover { color: var(--accent-text); background: var(--accent-dim); }
+    .toc-verse-num {
+      font-family: var(--font-mono); font-size: 0.68rem;
+      color: var(--accent-text); flex-shrink: 0;
+    }
+    .toc-verse-snippet { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @keyframes verseFlash {
+      0%, 100% { background: transparent; }
+      30% { background: var(--gold4); }
+    }
+    .verse-flash { animation: verseFlash 1.1s ease; }
 
     /* ═══ MAIN ═══ */
     #main {
@@ -313,24 +374,62 @@
     }
     #commentary-filter-bar.visible { display: flex; }
     .filter-label { color: var(--text-muted); font-size: 0.74rem; font-weight: 500; letter-spacing: 0.04em; margin-right: 0.25rem; white-space: nowrap; }
-    .author-chip {
-      display: inline-flex; align-items: center; gap: 0.3rem;
-      padding: 0.22rem 0.65rem;
-      border-radius: 99px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text-mid);
-      cursor: pointer;
-      font-size: 0.75rem; font-weight: 500;
-      transition: all 0.15s;
-      user-select: none;
+
+    /* ═══ MULTISELECT DROPDOWN (commentary authors) ═══ */
+    .ms-dropdown { position: relative; }
+    .ms-trigger {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.28rem 0.5rem 0.28rem 0.7rem;
+      font-size: 0.78rem; font-family: var(--font-ui); color: var(--text-mid);
+      cursor: pointer; transition: all 0.15s; max-width: 280px;
     }
-    .author-chip:hover { border-color: var(--border-strong); background: var(--accent-dim); }
-    .author-chip.active {
-      background: var(--accent); color: #fffcf2;
-      border-color: var(--accent);
+    .ms-trigger:hover { border-color: var(--border-strong); background: var(--accent-dim); }
+    .ms-trigger.open { border-color: var(--accent); color: var(--accent-text); }
+    .ms-trigger-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-trigger-count {
+      font-size: 0.68rem; font-weight: 600; color: var(--accent-text);
+      background: var(--accent-dim); border-radius: 99px; padding: 0.05rem 0.45rem;
+      flex-shrink: 0;
     }
-    .author-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+    .ms-trigger-caret { flex-shrink: 0; color: var(--text-muted); transition: transform 0.18s; }
+    .ms-trigger.open .ms-trigger-caret { transform: rotate(180deg); }
+    .ms-panel {
+      display: none;
+      position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+      min-width: 250px; max-width: 320px;
+      background: var(--surface); border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .ms-panel.open { display: block; }
+    .ms-panel-actions {
+      display: flex; gap: 0.4rem; padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .ms-panel-actions button {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 5px; padding: 0.22rem 0.4rem; font-size: 0.71rem;
+      color: var(--text-mid); cursor: pointer; font-family: var(--font-ui);
+      transition: all 0.1s;
+    }
+    .ms-panel-actions button:hover { background: var(--accent-dim); color: var(--accent-text); border-color: var(--border-strong); }
+    .ms-options { max-height: 260px; overflow-y: auto; padding: 0.3rem 0; }
+    .ms-option {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0.4rem 0.75rem; cursor: pointer; font-size: 0.81rem;
+      color: var(--text); transition: background 0.1s; user-select: none;
+    }
+    .ms-option:hover { background: var(--accent-dim); }
+    .ms-option input[type="checkbox"] {
+      width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+    }
+    .ms-option-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-option-count {
+      font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono); flex-shrink: 0;
+    }
     .filter-scope-btns { display: flex; gap: 0.3rem; margin-left: auto; }
     .filter-scope-btn {
       background: none; border: 1px solid var(--border);
@@ -526,10 +625,16 @@
     body[data-spacing="relaxed"] .commentary-body { line-height: 2.1; }
 
     /* ═══ FONT SIZE ═══ */
-    body[data-fz="sm"] { font-size: 13px; }
-    body[data-fz="md"] { font-size: 15px; }
-    body[data-fz="lg"] { font-size: 17px; }
-    body[data-fz="xl"] { font-size: 19px; }
+    /* Applied on the ROOT element so every `rem`-based size in this file
+       (verses, commentaries, sidebar, dropdowns, etc.) scales together,
+       proportionally, from a single source of truth. */
+    html[data-fz="xs"]  { font-size: 13px; }
+    html[data-fz="sm"]  { font-size: 14.5px; }
+    html[data-fz="md"]  { font-size: 16px; }
+    html[data-fz="lg"]  { font-size: 17.5px; }
+    html[data-fz="xl"]  { font-size: 19px; }
+    html[data-fz="xxl"] { font-size: 21px; }
+    body { font-size: 1rem; }
 
     /* ═══ PROGRESS BAR ═══ */
     #progress-bar {
@@ -566,6 +671,7 @@
       #sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 49; background: rgba(0,0,0,0.4); }
       #sidebar-overlay.visible { display: block; }
       .filter-scope-btns { margin-left: 0; }
+      .ms-panel { left: auto; right: 0; }
     }
 
     /* ═══ EMPTY / STATUS ═══ */
@@ -603,7 +709,7 @@
     .reading-meta span:first-child::before { display: none; }
   </style>
 </head>
-<body data-fz="md" data-spacing="normal">
+<body data-spacing="normal">
 
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -631,11 +737,12 @@
   <div id="nav-breadcrumb"></div>
   <button class="nav-btn" onclick="openSitewideSearch()" title="Search all texts (Ctrl+K)">⌕ All Texts</button>
   <button id="reading-mode-btn" class="nav-btn" onclick="toggleReadingMode()" title="Reading mode (R)">Read</button>
-  <div style="display:flex;align-items:center;gap:0.2rem;">
-    <button class="nav-btn" onclick="changeFontSize(-1)" title="Decrease font size">A−</button>
-    <button class="nav-btn" onclick="changeFontSize(1)" title="Increase font size">A+</button>
-    <button class="nav-btn" onclick="cycleSpacing()" id="spacing-btn" title="Cycle line spacing">¶</button>
+  <div id="fz-control" title="Text size">
+    <button class="nav-btn" id="fz-minus" onclick="changeFontSize(-1)" aria-label="Decrease text size">A−</button>
+    <span id="fz-level">100%</span>
+    <button class="nav-btn" id="fz-plus" onclick="changeFontSize(1)" aria-label="Increase text size">A+</button>
   </div>
+  <button class="nav-btn" onclick="cycleSpacing()" id="spacing-btn" title="Cycle line spacing">¶</button>
   <button class="nav-btn" onclick="toggleDark()" id="dark-btn" title="Toggle dark mode (D)">Dark</button>
 </nav>
 
@@ -675,11 +782,23 @@
 
     <!-- COMMENTARY FILTER BAR -->
     <div id="commentary-filter-bar">
-      <span class="filter-label">Show commentaries by:</span>
-      <div id="author-chips"></div>
+      <span class="filter-label">Commentaries:</span>
+      <div class="ms-dropdown" id="author-ms-dropdown">
+        <button class="ms-trigger" id="author-ms-trigger" onclick="toggleAuthorPanel(event)">
+          <span class="ms-trigger-label" id="author-ms-label">All authors</span>
+          <span class="ms-trigger-caret">▾</span>
+        </button>
+        <div class="ms-panel" id="author-ms-panel">
+          <div class="ms-panel-actions">
+            <button onclick="selectAllAuthors()">Select all</button>
+            <button onclick="clearAllAuthors()">Clear</button>
+          </div>
+          <div class="ms-options" id="author-ms-options"></div>
+        </div>
+      </div>
       <div class="filter-scope-btns">
         <button class="filter-scope-btn active" id="scope-whole" onclick="setFilterScope('whole')">Whole text</button>
-        <button class="filter-scope-btn" id="scope-section" onclick="setFilterScope('section')" id="scope-section-btn">This chapter</button>
+        <button class="filter-scope-btn" id="scope-section" onclick="setFilterScope('section')">This chapter</button>
       </div>
     </div>
 
@@ -744,14 +863,18 @@ let currentData = null;
 let currentFile = '';
 let searchMatches = [];
 let searchIdx = -1;
-let fontSizes = ['sm','md','lg','xl'];
-let fzIdx = 1;
+// Font sizes: each step is a named root size, and the % label is relative to "md" (16px = 100%)
+const FONT_STEPS = ['xs','sm','md','lg','xl','xxl'];
+const FONT_STEP_PX = { xs:13, sm:14.5, md:16, lg:17.5, xl:19, xxl:21 };
+let fzIdx = 2; // 'md'
 let isDark = false;
 let isReading = false;
 let tocObserver = null;
 let spacingIdx = 0;
-// Commentary filter state
-let activeAuthors = new Set(); // empty = all shown
+// Commentary filter state — shownAuthors holds the set of authors currently
+// visible. An empty set is treated as "all shown" (the default state).
+let shownAuthors = new Set();
+let allAuthorsList = [];
 let filterScope = 'whole'; // 'whole' | 'section'
 let currentSectionIdx = null;
 // Sitewide search index
@@ -778,7 +901,10 @@ const sidebar = document.getElementById('sidebar');
 const mainEl = document.getElementById('main');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 const filterBar = document.getElementById('commentary-filter-bar');
-const authorChipsEl = document.getElementById('author-chips');
+const authorMsTrigger = document.getElementById('author-ms-trigger');
+const authorMsPanel = document.getElementById('author-ms-panel');
+const authorMsLabel = document.getElementById('author-ms-label');
+const authorMsOptions = document.getElementById('author-ms-options');
 const swModal = document.getElementById('search-modal-backdrop');
 const swInput = document.getElementById('sw-search-input');
 const swStatus = document.getElementById('sw-search-status');
@@ -810,6 +936,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Sitewide search
   swInput.addEventListener('input', () => { clearTimeout(swSearchTimer); swSearchTimer = setTimeout(doSitewideSearch, 250); });
   swInput.addEventListener('keydown', onSwKey);
+  // Close the author multiselect dropdown when clicking outside it
+  document.addEventListener('click', (e) => {
+    if (authorMsPanel.classList.contains('open') && !e.target.closest('#author-ms-dropdown')) {
+      closeAuthorPanel();
+    }
+  });
   // Preload index in background
   preloadSwIndex();
 });
@@ -821,10 +953,11 @@ function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem('malolan-prefs') || '{}');
     if (p.dark) { isDark = true; document.documentElement.setAttribute('data-dark',''); document.getElementById('dark-btn').textContent = 'Light'; }
-    if (p.fzIdx !== undefined) { fzIdx = p.fzIdx; document.body.setAttribute('data-fz', fontSizes[fzIdx]); }
+    if (p.fzIdx !== undefined && FONT_STEPS[p.fzIdx]) { fzIdx = p.fzIdx; }
     if (p.reading) { isReading = true; document.body.classList.add('reading-mode'); document.getElementById('reading-mode-btn').textContent = 'Full'; }
     if (p.spacingIdx !== undefined) { spacingIdx = p.spacingIdx; document.body.setAttribute('data-spacing', SPACING_CYCLE[spacingIdx]); }
   } catch(e) {}
+  applyFontSize();
 }
 function savePrefs() {
   localStorage.setItem('malolan-prefs', JSON.stringify({ dark: isDark, fzIdx, reading: isReading, spacingIdx }));
@@ -839,11 +972,27 @@ window.toggleDark = function() {
   document.getElementById('dark-btn').textContent = isDark ? 'Light' : 'Dark';
   savePrefs();
 };
+
+// Font size is applied on <html> (the root element) rather than <body>,
+// because every other size in this stylesheet is expressed in `rem`, which
+// is always relative to the ROOT element's font-size — not the body's.
+// Setting it on body alone (the old approach) had no visible effect on any
+// rem-sized text. This also lets us show a real, accurate zoom percentage
+// and disable the +/− buttons at the boundaries.
+function applyFontSize() {
+  const step = FONT_STEPS[fzIdx];
+  document.documentElement.setAttribute('data-fz', step);
+  const pct = Math.round((FONT_STEP_PX[step] / FONT_STEP_PX.md) * 100);
+  document.getElementById('fz-level').textContent = pct + '%';
+  document.getElementById('fz-minus').disabled = fzIdx === 0;
+  document.getElementById('fz-plus').disabled = fzIdx === FONT_STEPS.length - 1;
+}
 window.changeFontSize = function(dir) {
-  fzIdx = Math.max(0, Math.min(fontSizes.length - 1, fzIdx + dir));
-  document.body.setAttribute('data-fz', fontSizes[fzIdx]);
+  fzIdx = Math.max(0, Math.min(FONT_STEPS.length - 1, fzIdx + dir));
+  applyFontSize();
   savePrefs();
 };
+
 window.cycleSpacing = function() {
   spacingIdx = (spacingIdx + 1) % SPACING_CYCLE.length;
   document.body.setAttribute('data-spacing', SPACING_CYCLE[spacingIdx]);
@@ -898,7 +1047,7 @@ function onKey(e) {
   if (e.key === 'd' || e.key === 'D') toggleDark();
   if (e.key === 'r' || e.key === 'R') toggleReadingMode();
   if (e.key === 's' || e.key === 'S') toggleSidebar();
-  if (e.key === 'Escape') { closeSitewideSearch(null); }
+  if (e.key === 'Escape') { closeSitewideSearch(null); closeAuthorPanel(); }
 }
 
 // ──────────────────────────────────────────────
@@ -935,7 +1084,8 @@ async function openFile(fileName) {
   loadingState.style.display = 'flex';
   fileContent.style.display = 'none';
   navBreadcrumb.innerHTML = '';
-  activeAuthors = new Set();
+  shownAuthors = new Set();
+  allAuthorsList = [];
   filterScope = 'whole';
 
   const name = fileName.replace('.json','').replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -967,21 +1117,21 @@ async function openFile(fileName) {
 // ──────────────────────────────────────────────
 function renderFile(data, name) {
   let sections = [], totalVerses = 0, totalComms = 0;
-  const allAuthors = new Set();
+  const authorCounts = new Map();
   if (data.content && data.content.sections) sections = data.content.sections;
   sections.forEach(s => {
     (s.verses || []).forEach(v => {
       totalVerses++;
       (v.commentaries || []).forEach(c => {
         totalComms++;
-        if (c.author) allAuthors.add(c.author);
+        if (c.author) authorCounts.set(c.author, (authorCounts.get(c.author) || 0) + 1);
       });
     });
   });
 
-  // Set up filter bar if multiple authors
-  if (allAuthors.size > 1) {
-    buildFilterBar(allAuthors);
+  // Set up filter dropdown if multiple authors
+  if (authorCounts.size > 1) {
+    buildFilterBar(authorCounts);
     filterBar.classList.add('visible');
     document.body.classList.add('has-filter');
   } else {
@@ -1004,7 +1154,7 @@ function renderFile(data, name) {
     <div class="stat"><div class="stat-n">${sections.length}</div><div class="stat-l">Sections</div></div>
     <div class="stat"><div class="stat-n">${totalVerses}</div><div class="stat-l">Verses</div></div>
     <div class="stat"><div class="stat-n">${totalComms}</div><div class="stat-l">Commentaries</div></div>
-    <div class="stat"><div class="stat-n">${allAuthors.size}</div><div class="stat-l">Authors</div></div>
+    <div class="stat"><div class="stat-n">${authorCounts.size}</div><div class="stat-l">Authors</div></div>
   </div>
   <div class="reading-meta">
     <span>~${wordCount.toLocaleString()} words</span>
@@ -1096,16 +1246,39 @@ function renderFile(data, name) {
 }
 
 // ──────────────────────────────────────────────
-// TOC
+// TOC (sidebar) — each section is a dropdown that, when expanded,
+// lists every verse as "verse no. + first 25 characters…"
 // ──────────────────────────────────────────────
+function verseSnippet(verse) {
+  const raw = (verse.original_text || verse.translation || '').replace(/\s+/g, ' ').trim();
+  const slice = raw.slice(0, 25);
+  return slice + '...';
+}
+
 function buildToc(sections) {
   let html = '<p class="sidebar-section-title">Sections</p>';
   sections.forEach((sec, si) => {
-    const vCount = (sec.verses || []).length;
-    html += `<a class="toc-item" id="toc-${si}" onclick="jumpToSection(${si})" href="javascript:void(0)">
-      <span class="toc-verse-count">${vCount}v</span>
-      ${escHtml(sec.title || 'Section ' + (si+1))}
-    </a>`;
+    const verses = sec.verses || [];
+    const vCount = verses.length;
+    html += `<div class="toc-section" data-secidx="${si}">
+      <div class="toc-item-row">
+        <button class="toc-chevron-btn" id="tocchev-${si}" onclick="toggleTocSection(${si})" aria-label="Toggle verse list" title="Show verses">
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 1L7 4.5L2 8"/></svg>
+        </button>
+        <a class="toc-item" id="toc-${si}" onclick="jumpToSection(${si})" href="javascript:void(0)">
+          <span class="toc-verse-count">${vCount}v</span>
+          ${escHtml(sec.title || 'Section ' + (si+1))}
+        </a>
+      </div>
+      <div class="toc-verses" id="tocverses-${si}">`;
+    verses.forEach((verse, vi) => {
+      const vNum = verse.verse_number || (vi + 1);
+      html += `<a class="toc-verse-item" onclick="jumpToVerse(${si},${vi})" href="javascript:void(0)" title="${escAttr(verseSnippet(verse))}">
+        <span class="toc-verse-num">${escHtml(String(vNum))}</span>
+        <span class="toc-verse-snippet">${escHtml(verseSnippet(verse))}</span>
+      </a>`;
+    });
+    html += `</div></div>`;
   });
   tocContainer.innerHTML = html;
 }
@@ -1115,6 +1288,28 @@ function jumpToSection(idx) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (window.innerWidth <= 680) closeSidebar();
 }
+
+window.toggleTocSection = function(idx) {
+  const list = document.getElementById('tocverses-' + idx);
+  const chev = document.getElementById('tocchev-' + idx);
+  if (!list || !chev) return;
+  const open = list.classList.toggle('open');
+  chev.classList.toggle('open', open);
+};
+
+window.jumpToVerse = function(secIdx, verseIdx) {
+  const vId = `sec-${secIdx}-v${verseIdx}`;
+  const el = document.getElementById(vId);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('verse-flash');
+    // restart animation even if it was already flashed once
+    void el.offsetWidth;
+    el.classList.add('verse-flash');
+    setTimeout(() => el.classList.remove('verse-flash'), 1200);
+  }
+  if (window.innerWidth <= 680) closeSidebar();
+};
 
 function initTocObserver() {
   if (tocObserver) tocObserver.disconnect();
@@ -1137,51 +1332,81 @@ function initTocObserver() {
 }
 
 // ──────────────────────────────────────────────
-// COMMENTARY FILTER
+// COMMENTARY FILTER — multiselect dropdown
 // ──────────────────────────────────────────────
-function buildFilterBar(authors) {
-  const arr = Array.from(authors).sort();
-  authorChipsEl.innerHTML = arr.map(a =>
-    `<button class="author-chip active" data-author="${escAttr(a)}" onclick="toggleAuthorFilter('${escAttr(a)}')">${escHtml(a)}</button>`
-  ).join('');
-  // All active = all shown
-  activeAuthors = new Set(); // empty means all shown
+function buildFilterBar(authorCounts) {
+  allAuthorsList = Array.from(authorCounts.keys()).sort();
+  shownAuthors = new Set(); // empty = all shown, the default
+  authorMsOptions.innerHTML = allAuthorsList.map(a => `
+    <label class="ms-option">
+      <input type="checkbox" checked data-author="${escAttr(a)}" onchange="onAuthorCheckboxChange(this)">
+      <span class="ms-option-name">${escHtml(a)}</span>
+      <span class="ms-option-count">${authorCounts.get(a)}</span>
+    </label>`).join('');
   document.getElementById('scope-whole').classList.add('active');
   document.getElementById('scope-section').classList.remove('active');
+  filterScope = 'whole';
+  updateAuthorTriggerLabel();
 }
 
-window.toggleAuthorFilter = function(author) {
-  const chips = document.querySelectorAll('.author-chip');
-  const allActive = activeAuthors.size === 0;
+window.toggleAuthorPanel = function(e) {
+  e.stopPropagation();
+  const open = authorMsPanel.classList.toggle('open');
+  authorMsTrigger.classList.toggle('open', open);
+};
+function closeAuthorPanel() {
+  authorMsPanel.classList.remove('open');
+  authorMsTrigger.classList.remove('open');
+}
 
-  if (allActive) {
-    // Currently showing all → click one means show ONLY that one
-    activeAuthors = new Set(Array.from(document.querySelectorAll('.author-chip')).map(c => c.dataset.author).filter(a => a !== author));
-    // activeAuthors holds the HIDDEN ones; but let's flip: activeAuthors = shown
-    // Actually let's store SHOWN authors
-    const allAuthors = Array.from(document.querySelectorAll('.author-chip')).map(c => c.dataset.author);
-    activeAuthors = new Set([author]); // show only this author
-    // Mark which chips are "shown"
-  } else {
-    if (activeAuthors.has(author)) {
-      activeAuthors.delete(author);
-      if (activeAuthors.size === 0) activeAuthors = new Set(); // all shown
-    } else {
-      activeAuthors.add(author);
-    }
-  }
-  // If all authors are now active, reset to empty (all shown)
-  const totalAuthors = document.querySelectorAll('.author-chip').length;
-  if (activeAuthors.size === totalAuthors) activeAuthors = new Set();
-
-  // Update chip visuals
-  chips.forEach(chip => {
-    const isShown = activeAuthors.size === 0 || activeAuthors.has(chip.dataset.author);
-    chip.classList.toggle('active', isShown);
-  });
-
+window.onAuthorCheckboxChange = function(checkbox) {
+  const author = checkbox.dataset.author;
+  // shownAuthors empty means "all shown" — materialize the full set first
+  if (shownAuthors.size === 0) shownAuthors = new Set(allAuthorsList);
+  if (checkbox.checked) shownAuthors.add(author);
+  else shownAuthors.delete(author);
+  // If everything ended up checked again, collapse back to the "all" shorthand
+  if (shownAuthors.size === allAuthorsList.length) shownAuthors = new Set();
+  updateAuthorTriggerLabel();
   applyCommentaryFilter();
 };
+
+window.selectAllAuthors = function() {
+  shownAuthors = new Set();
+  authorMsOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+  updateAuthorTriggerLabel();
+  applyCommentaryFilter();
+};
+window.clearAllAuthors = function() {
+  shownAuthors = new Set(['__none__']); // sentinel: explicitly nothing, never equals "all"
+  authorMsOptions.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  updateAuthorTriggerLabel();
+  applyCommentaryFilter();
+};
+
+function isAuthorShown(author) {
+  if (shownAuthors.size === 0) return true; // default: all shown
+  return shownAuthors.has(author);
+}
+
+function updateAuthorTriggerLabel() {
+  const total = allAuthorsList.length;
+  let shownCount;
+  if (shownAuthors.size === 0) shownCount = total;
+  else if (shownAuthors.has('__none__')) shownCount = 0;
+  else shownCount = shownAuthors.size;
+
+  if (shownCount === total) {
+    authorMsLabel.textContent = 'All authors';
+  } else if (shownCount === 0) {
+    authorMsLabel.textContent = 'No authors';
+  } else if (shownCount <= 2) {
+    const names = allAuthorsList.filter(isAuthorShown);
+    authorMsLabel.textContent = names.join(', ');
+  } else {
+    authorMsLabel.textContent = `${shownCount} of ${total} authors`;
+  }
+}
 
 window.setFilterScope = function(scope) {
   filterScope = scope;
@@ -1194,7 +1419,7 @@ function applyCommentaryFilter() {
   const allCommentaryItems = document.querySelectorAll('.commentary-item');
   allCommentaryItems.forEach(item => {
     const author = item.dataset.author || '';
-    const shown = activeAuthors.size === 0 || activeAuthors.has(author);
+    const shown = isAuthorShown(author);
 
     if (filterScope === 'whole') {
       item.classList.toggle('author-hidden', !shown);
