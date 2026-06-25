@@ -707,7 +707,27 @@
     }
     .reading-meta span::before { content: '·'; margin-right: 0.4rem; }
     .reading-meta span:first-child::before { display: none; }
-  </style>
+  
+/* Tablets */
+@media (min-width:681px) and (max-width:1024px) {
+  :root { --sidebar-w: 320px; }
+  #content-area { padding: 1.5rem; max-width: 100%; }
+  .section-name { font-size: 1.2rem; }
+  .verse-original, .verse-translation { font-size: 1rem; }
+  #search-input-box { max-width: 100%; }
+  #nav-breadcrumb { display:none; }
+}
+
+
+@media (max-width:680px) {
+  #nav { gap:.3rem; padding:0 .5rem; }
+  #nav-breadcrumb { display:none; }
+  #fz-control { display:none; }
+  .verse-actions { opacity:1; }
+  .file-grid { grid-template-columns:1fr; }
+}
+
+</style>
 </head>
 <body data-spacing="normal">
 
@@ -766,7 +786,7 @@
         <svg id="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
         </svg>
-        <input id="search-input" type="search" placeholder="Search in this text… (/)" autocomplete="off" spellcheck="false">
+        <input id="search-input" type="search" placeholder="Search: देवनागरी, IAST, or Harvard-Kyoto" autocomplete="off" spellcheck="false">
       </div>
       <div id="search-nav-btns">
         <span id="search-count"></span>
@@ -1700,6 +1720,44 @@ function escHtml(s) {
 }
 function escAttr(s) { return escHtml(s).replace(/\n/g,'&#10;'); }
 function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Sanskrit Romanization Search Support
+function iastToHK(str){
+ return str
+  .replace(/ā/g,'A').replace(/ī/g,'I').replace(/ū/g,'U')
+  .replace(/ṛ/g,'R').replace(/ṝ/g,'RR').replace(/ḷ/g,'lR')
+  .replace(/ṅ/g,'G').replace(/ñ/g,'J').replace(/ṭ/g,'T')
+  .replace(/ḍ/g,'D').replace(/ṇ/g,'N').replace(/ś/g,'z')
+  .replace(/ṣ/g,'S').replace(/ṃ/g,'M').replace(/ḥ/g,'H');
+}
+const HK_MAP={A:"आ",I:"ई",U:"ऊ",R:"ऋ",RR:"ॠ",lR:"ऌ",M:"ं",H:"ः",
+k:"क",kh:"ख",g:"ग",gh:"घ",G:"ङ",c:"च",ch:"छ",j:"ज",jh:"झ",J:"ञ",
+T:"ट",Th:"ठ",D:"ड",Dh:"ढ",N:"ण",t:"त",th:"थ",d:"द",dh:"ध",n:"न",
+p:"प",ph:"फ",b:"ब",bh:"भ",m:"म",y:"य",r:"र",l:"ल",v:"व",
+z:"श",S:"ष",s:"स",h:"ह"};
+function romanToDevanagari(txt){
+ txt=iastToHK(txt);
+ let out=txt;
+ Object.keys(HK_MAP).sort((a,b)=>b.length-a.length).forEach(k=>{
+   out=out.replace(new RegExp(k,'g'),HK_MAP[k]);
+ });
+ return out;
+}
+function normalizeSearchQuery(q){ return romanToDevanagari(q.trim()); }
+
+// Mobile swipe sidebar
+let touchStartX=0;
+document.addEventListener("touchstart",e=>{touchStartX=e.touches[0].clientX;});
+document.addEventListener("touchend",e=>{
+ const endX=e.changedTouches[0].clientX;
+ if(window.innerWidth>680) return;
+ if(touchStartX<25 && endX>100){
+   sidebar.classList.add("mobile-open");
+   sidebarOverlay.classList.add("visible");
+ }
+ if(touchStartX>100 && endX<20){ closeSidebar(); }
+});
+
 </script>
 </body>
 </html>
