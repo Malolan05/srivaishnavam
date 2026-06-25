@@ -3,937 +3,1020 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Malolan • structured JSON viewer</title>
-  <!-- Fonts & icons -->
+  <title>Malolan · Scripture Reader</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
-    * { scrollbar-width: thin; scrollbar-color: #c7d2fe transparent; }
-    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 8px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #a5b4fc; border-radius: 8px; }
-    
-    .mark-search {
-      background: #fde047;
-      color: #1e293b;
-      border-radius: 4px;
-      padding: 0 2px;
-      font-weight: 600;
-      box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.4);
+    :root {
+      --bg: #faf9f7;
+      --surface: #ffffff;
+      --surface2: #f4f3f0;
+      --border: #e8e4dc;
+      --border-strong: #ccc8be;
+      --text: #1a1917;
+      --text-mid: #4a4641;
+      --text-muted: #8a857c;
+      --accent: #6246ea;
+      --accent-dim: #ede9fe;
+      --accent-text: #3d1ca8;
+      --verse-bg: #fffef5;
+      --verse-border: #e8d88a;
+      --sidebar-w: 260px;
+      --nav-h: 56px;
+      --font-reading: 'Lora', Georgia, serif;
+      --font-ui: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 8px;
+      --radius-lg: 12px;
     }
-    
-    .meta-table {
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 0.9rem;
-      border-radius: 1rem;
+    [data-dark] {
+      --bg: #111009;
+      --surface: #1c1b18;
+      --surface2: #252420;
+      --border: #2e2c27;
+      --border-strong: #454238;
+      --text: #f0ede6;
+      --text-mid: #b8b4ab;
+      --text-muted: #6b6760;
+      --accent: #8b71f7;
+      --accent-dim: #2a1f5c;
+      --accent-text: #c4b5fd;
+      --verse-bg: #1e1c14;
+      --verse-border: #4a430f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+      transition: background 0.25s, color 0.25s;
+    }
+    *::-webkit-scrollbar { width: 5px; height: 5px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+
+    /* ---- NAV ---- */
+    #nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 1.25rem;
+      gap: 1rem;
+    }
+    #nav-logo {
+      font-size: 1.1rem; font-weight: 600; color: var(--accent);
+      text-decoration: none; letter-spacing: -0.02em; white-space: nowrap;
+    }
+    #nav-breadcrumb {
+      font-size: 0.8rem; color: var(--text-muted); flex: 1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #nav-breadcrumb span { color: var(--text-mid); }
+    .nav-btn {
+      background: none; border: 1px solid var(--border);
+      color: var(--text-mid); cursor: pointer; border-radius: var(--radius);
+      padding: 0.3rem 0.7rem; font-size: 0.78rem; font-family: var(--font-ui);
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .nav-btn:hover { background: var(--surface2); border-color: var(--border-strong); }
+    #font-size-display { min-width: 2.5rem; text-align: center; }
+
+    /* ---- LAYOUT ---- */
+    #shell {
+      display: flex;
+      padding-top: var(--nav-h);
+      min-height: 100vh;
+    }
+
+    /* ---- SIDEBAR ---- */
+    #sidebar {
+      position: fixed;
+      top: var(--nav-h); bottom: 0; left: 0;
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 1rem 0;
+      z-index: 50;
+      transition: transform 0.25s ease;
+    }
+    #sidebar.hidden { transform: translateX(calc(-1 * var(--sidebar-w))); }
+    .sidebar-section-title {
+      font-size: 0.68rem; font-weight: 600;
+      color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.5rem 1rem 0.25rem;
+    }
+    .toc-item {
+      display: block; padding: 0.35rem 1rem;
+      font-size: 0.82rem; color: var(--text-mid);
+      text-decoration: none; line-height: 1.4;
+      border-left: 2px solid transparent;
+      transition: all 0.1s;
+      cursor: pointer;
+    }
+    .toc-item:hover { color: var(--accent); background: var(--accent-dim); }
+    .toc-item.active {
+      color: var(--accent); font-weight: 500;
+      border-left-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .toc-verse-count {
+      font-size: 0.7rem; color: var(--text-muted);
+      float: right; margin-top: 1px;
+    }
+
+    /* ---- MAIN CONTENT ---- */
+    #main {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      transition: margin-left 0.25s ease;
+      max-width: 100%;
+    }
+    #main.nosidebar { margin-left: 0; }
+    #content-area {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 2rem 2rem 5rem;
+    }
+
+    /* ---- HOME ---- */
+    #home-view { }
+    .home-header {
+      padding: 2.5rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .home-header h1 {
+      font-family: var(--font-reading);
+      font-size: 2.2rem; font-weight: 600;
+      color: var(--text); letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .home-header p { color: var(--text-muted); font-size: 0.95rem; }
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem;
+    }
+    .file-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      transition: all 0.15s;
+    }
+    .file-card:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      transform: translateY(-1px);
+    }
+    .file-card-name {
+      font-size: 0.88rem; font-weight: 500;
+      color: var(--text); line-height: 1.4;
+      margin-bottom: 0.3rem;
+    }
+    .file-card-sub { font-size: 0.75rem; color: var(--text-muted); }
+    .file-card:hover .file-card-name { color: var(--accent-text); }
+
+    /* ---- SEARCH BAR ---- */
+    #search-wrap {
+      position: sticky; top: var(--nav-h); z-index: 40;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 2rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    #search-wrap.nosidebar { margin-left: 0; }
+    #search-input-box {
+      flex: 1; max-width: 460px;
+      position: relative;
+    }
+    #search-input {
+      width: 100%; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 99px;
+      padding: 0.4rem 1rem 0.4rem 2.4rem;
+      font-size: 0.85rem; font-family: var(--font-ui);
+      color: var(--text);
+      outline: none; transition: border-color 0.15s;
+    }
+    #search-input:focus { border-color: var(--accent); }
+    #search-icon {
+      position: absolute; left: 0.75rem; top: 50%;
+      transform: translateY(-50%);
+      width: 14px; height: 14px;
+      color: var(--text-muted); pointer-events: none;
+    }
+    #search-nav-btns { display: none; align-items: center; gap: 0.25rem; }
+    #search-count { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+    .search-arrow {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.25rem 0.5rem;
+      cursor: pointer; color: var(--text-mid); font-size: 0.75rem;
+      transition: all 0.1s;
+    }
+    .search-arrow:hover { background: var(--surface2); }
+    #search-clear-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: 1.1rem; line-height: 1;
+      padding: 0 0.25rem;
+    }
+    #search-clear-btn:hover { color: var(--text); }
+    .search-hint { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+    .mark-hit {
+      background: #fde047; color: #1a1000;
+      border-radius: 2px; padding: 0 1px;
+    }
+    .mark-hit.active-hit {
+      background: #f59e0b; box-shadow: 0 0 0 2px #fbbf24;
+    }
+
+    /* ---- STATS BAR ---- */
+    #stats-bar {
+      display: flex; gap: 1.5rem;
+      padding: 0.75rem 0 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-n { font-size: 1.5rem; font-weight: 600; color: var(--text); font-family: var(--font-reading); }
+    .stat-l { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ---- METADATA ---- */
+    .meta-block {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
       overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      border: 1px solid #e2e8f0;
+      margin-bottom: 2rem;
     }
-    .meta-table td {
+    .meta-block summary {
       padding: 0.75rem 1rem;
-      border-bottom: 1px solid #f1f5f9;
-      vertical-align: top;
+      cursor: pointer; list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.85rem; font-weight: 500; color: var(--text-mid);
+      user-select: none;
     }
-    .meta-table td:first-child {
-      font-weight: 600;
-      color: #475569;
-      background: #f8fafc;
-      width: 25%;
-      letter-spacing: 0.01em;
-      font-size: 0.85rem;
+    .meta-block summary::-webkit-details-marker { display: none; }
+    .meta-block summary::after { content: "›"; font-size: 1.1rem; color: var(--text-muted); transition: transform 0.2s; }
+    .meta-block[open] summary::after { transform: rotate(90deg); }
+    .meta-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    .meta-table td { padding: 0.55rem 1rem; border-top: 1px solid var(--border); vertical-align: top; }
+    .meta-table td:first-child { color: var(--text-muted); width: 30%; font-weight: 500; }
+
+    /* ---- SECTIONS ---- */
+    .section-block {
+      margin-bottom: 2.5rem;
+      scroll-margin-top: calc(var(--nav-h) + 56px);
     }
-    .meta-table tr:last-child td { border-bottom: none; }
-    
-    .commentary-block {
-      border-left: 3px solid #e0e7ff;
-      background: #f9fafb;
-      border-radius: 0 0.75rem 0.75rem 0;
-      margin: 0.5rem 0 0.5rem 1rem;
-      padding: 0.75rem 1rem;
-      transition: all 0.2s;
+    .section-header {
+      position: sticky;
+      top: calc(var(--nav-h) + 49px);
+      z-index: 30;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 0;
+      margin-bottom: 1.25rem;
     }
-    .commentary-block:hover { border-left-color: #818cf8; background: #f5f7ff; }
-    
-    .verse-original {
-      font-family: 'JetBrains Mono', 'Noto Sans', monospace;
-      background: #fffbeb;
-      padding: 0.75rem 1rem;
-      border-radius: 0.7rem;
-      font-size: 0.9rem;
-      line-height: 1.7;
-      color: #1e293b;
-      border: 1px solid #fde68a;
-      margin: 0.5rem 0;
-      white-space: pre-wrap;
-      word-break: break-word;
+    .section-title-row {
+      display: flex; align-items: baseline; gap: 0.75rem;
+      justify-content: space-between;
     }
-    
-    .section-card {
-      background: white;
-      border-radius: 1.25rem;
-      padding: 1.5rem;
-      box-shadow: 0 10px 25px -8px rgba(0,0,0,0.06);
-      border: 1px solid #eef2ff;
+    .section-num {
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--accent-text);
+      background: var(--accent-dim);
+      border-radius: 99px;
+      padding: 0.15rem 0.6rem;
+      white-space: nowrap;
+    }
+    .section-name {
+      font-family: var(--font-reading);
+      font-size: 1.05rem; font-weight: 600;
+      color: var(--text); flex: 1;
+    }
+    .section-toggle-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.2rem 0.55rem;
+      font-size: 0.72rem; color: var(--text-muted);
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.1s;
+    }
+    .section-toggle-btn:hover { background: var(--surface2); color: var(--text-mid); }
+
+    /* ---- VERSES ---- */
+    .verse-block {
       margin-bottom: 1.5rem;
-      transition: all 0.3s;
-    }
-    .section-card:hover {
-      box-shadow: 0 15px 35px -8px rgba(79, 70, 229, 0.1);
-      border-color: #c7d2fe;
-    }
-    
-    .verse-container {
-      border-left: 2px solid #e2e8f0;
+      border-left: 2px solid var(--border);
       padding-left: 1rem;
       transition: border-color 0.2s;
     }
-    .verse-container:hover {
-      border-left-color: #818cf8;
+    .verse-block:hover { border-left-color: var(--border-strong); }
+    .verse-meta {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.5rem;
     }
-    
-    details summary {
+    .verse-num {
+      font-size: 0.7rem; font-family: var(--font-mono);
+      color: var(--accent-text); background: var(--accent-dim);
+      border-radius: 4px; padding: 0.1rem 0.5rem;
+    }
+    .verse-copy-btn {
+      margin-left: auto;
+      background: none; border: none;
+      font-size: 0.72rem; color: var(--text-muted);
+      cursor: pointer; padding: 0.15rem 0.4rem;
+      border-radius: 4px; transition: all 0.1s;
+      opacity: 0;
+    }
+    .verse-block:hover .verse-copy-btn { opacity: 1; }
+    .verse-copy-btn:hover { background: var(--surface2); color: var(--text); }
+    .verse-original {
+      font-family: var(--font-mono);
+      background: var(--verse-bg);
+      border: 1px solid var(--verse-border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 0.5rem;
+    }
+    .verse-translation {
+      font-family: var(--font-reading);
+      font-size: 0.92rem; font-style: italic;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+      padding: 0 0.25rem;
+    }
+
+    /* ---- COMMENTARIES ---- */
+    .commentaries-toggle {
+      background: none; border: none;
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; font-weight: 500;
+      color: var(--accent); cursor: pointer;
+      padding: 0.25rem 0;
+      transition: color 0.15s;
+    }
+    .commentaries-toggle:hover { color: var(--accent-text); }
+    .commentaries-toggle svg { transition: transform 0.2s; }
+    .commentaries-toggle.open svg { transform: rotate(90deg); }
+    .commentaries-list { margin-top: 0.5rem; display: none; }
+    .commentaries-list.open { display: block; }
+    .commentary-item {
+      margin-bottom: 0.5rem;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .commentary-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
       cursor: pointer;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      color: #4f46e5;
       user-select: none;
+      transition: background 0.1s;
     }
-    details summary::-webkit-details-marker { display: none; }
-    details summary::before {
-      content: "▸";
-      font-size: 1rem;
-      transition: transform 0.2s;
-      display: inline-block;
-      min-width: 16px;
-    }
-    details[open] > summary::before {
-      transform: rotate(90deg);
-    }
-    
-    .expand-all-btn {
-      background: white;
-      border: 1px solid #e2e8f0;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      color: #475569;
-    }
-    .expand-all-btn:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      transform: translateY(-1px);
-    }
-    
-    .json-badge {
-      background: #e0e7ff;
-      color: #4338ca;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 0.2rem 0.6rem;
-      border-radius: 1rem;
-      letter-spacing: 0.02em;
-    }
-    
-    .file-card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .file-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px -12px rgba(79, 70, 229, 0.15);
-    }
-    
-    .section-number {
-      display: inline-block;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.2rem 0.6rem;
-      border-radius: 1rem;
-      margin-right: 0.5rem;
-      letter-spacing: 0.02em;
-    }
-    
-    .verse-number-badge {
-      display: inline-block;
-      background: #eef2ff;
-      color: #4f46e5;
-      font-size: 0.7rem;
-      font-weight: 600;
+    .commentary-header:hover { background: var(--surface2); }
+    .commentary-author-badge {
+      font-size: 0.72rem; font-weight: 600;
       padding: 0.15rem 0.6rem;
-      border-radius: 1rem;
-      font-family: 'JetBrains Mono', monospace;
+      border-radius: 99px;
+      background: #e0f2fe; color: #075985;
     }
-    
-    .commentary-author {
-      display: inline-block;
-      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-      color: #166534;
-      font-weight: 600;
-      font-size: 0.8rem;
-      padding: 0.2rem 0.8rem;
-      border-radius: 1rem;
+    [data-dark] .commentary-author-badge { background: #0c2a3e; color: #7dd3fc; }
+    .commentary-lang { font-size: 0.7rem; color: var(--text-muted); }
+    .commentary-chevron { margin-left: auto; color: var(--text-muted); font-size: 0.8rem; transition: transform 0.2s; }
+    .commentary-item.open .commentary-chevron { transform: rotate(180deg); }
+    .commentary-body {
+      display: none;
+      padding: 0.6rem 0.75rem 0.75rem;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      color: var(--text-mid);
+      border-top: 1px solid var(--border);
+      white-space: pre-wrap;
+      word-break: break-word;
     }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 0.5rem;
+    .commentary-item.open .commentary-body { display: block; }
+
+    /* ---- READING MODE ---- */
+    body.reading-mode #sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+    body.reading-mode #main { margin-left: 0; }
+    body.reading-mode #content-area { max-width: 680px; }
+    body.reading-mode .verse-original { font-family: var(--font-reading); font-style: italic; }
+
+    /* ---- FONT SIZE ---- */
+    body[data-fz="sm"] { font-size: 13px; }
+    body[data-fz="md"] { font-size: 15px; }
+    body[data-fz="lg"] { font-size: 17px; }
+    body[data-fz="xl"] { font-size: 19px; }
+
+    /* ---- PROGRESS BAR ---- */
+    #progress-bar {
+      position: fixed; top: var(--nav-h); left: 0; right: 0; z-index: 200;
+      height: 2px; background: var(--border); pointer-events: none;
     }
-    .stat-item {
-      background: #f8fafc;
-      padding: 0.4rem 0.8rem;
-      border-radius: 0.5rem;
-      text-align: center;
-      font-size: 0.8rem;
+    #progress-fill {
+      height: 100%; background: var(--accent);
+      width: 0; transition: width 0.1s;
     }
-    .stat-item .stat-value {
-      font-weight: 700;
-      color: #1e293b;
-      font-size: 1rem;
+
+    /* ---- JUMP TO TOP ---- */
+    #jump-top {
+      position: fixed; bottom: 2rem; right: 1.5rem; z-index: 100;
+      background: var(--surface); border: 1px solid var(--border-strong);
+      color: var(--text-mid); border-radius: 50%;
+      width: 38px; height: 38px;
+      display: none; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: all 0.15s;
     }
-    .stat-item .stat-label {
-      color: #64748b;
-      font-size: 0.7rem;
+    #jump-top:hover { background: var(--accent-dim); color: var(--accent); }
+    #jump-top.visible { display: flex; }
+
+    /* ---- MOBILE ---- */
+    @media (max-width: 680px) {
+      :root { --sidebar-w: 80vw; }
+      #main { margin-left: 0 !important; }
+      #content-area { padding: 1.25rem 1rem 5rem; }
+      #search-wrap { padding: 0.5rem 1rem; }
+      .search-hint { display: none; }
+      #sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+      #sidebar.mobile-open { transform: translateX(0); box-shadow: 8px 0 32px rgba(0,0,0,0.2); }
+      #sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 49; background: rgba(0,0,0,0.4); }
+      #sidebar-overlay.visible { display: block; }
     }
-    
-    .breadcrumb-separator {
-      color: #94a3b8;
-      margin: 0 0.25rem;
+
+    /* ---- EMPTY / STATUS ---- */
+    #loading-state {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 1rem; padding: 4rem 2rem; color: var(--text-muted);
     }
-    
-    .theme-toggle {
-      transition: all 0.2s;
-      cursor: pointer;
-      padding: 0.25rem 0.75rem;
-      border-radius: 2rem;
-      border: 1px solid #e2e8f0;
-      background: white;
-      font-size: 0.8rem;
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
-    .theme-toggle:hover {
-      background: #f1f5f9;
-    }
-    
-    .copy-btn {
-      transition: all 0.2s;
-      cursor: pointer;
-      padding: 0.25rem 0.75rem;
-      border-radius: 2rem;
-      border: 1px solid #e2e8f0;
-      background: white;
-      font-size: 0.8rem;
-      color: #475569;
-    }
-    .copy-btn:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-    }
-    .copy-btn.copied {
-      background: #dcfce7;
-      border-color: #86efac;
-      color: #166534;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in {
-      animation: fadeIn 0.3s ease-out;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: #94a3b8;
-    }
-    .empty-state .icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-    
-    /* Dark mode support */
-    .dark-mode {
-      background: #0f172a !important;
-      color: #e2e8f0 !important;
-    }
-    .dark-mode .section-card {
-      background: #1e293b;
-      border-color: #334155;
-    }
-    .dark-mode .section-card:hover {
-      border-color: #4f46e5;
-    }
-    .dark-mode .verse-original {
-      background: #1e1b4b;
-      border-color: #4f46e5;
-      color: #e2e8f0;
-    }
-    .dark-mode .commentary-block {
-      background: #1e293b;
-      border-left-color: #4f46e5;
-    }
-    .dark-mode .commentary-block:hover {
-      background: #262f44;
-    }
-    .dark-mode .meta-table {
-      border-color: #334155;
-    }
-    .dark-mode .meta-table td {
-      border-bottom-color: #1e293b;
-    }
-    .dark-mode .meta-table td:first-child {
-      background: #1e293b;
-      color: #94a3b8;
-    }
-    .dark-mode .expand-all-btn {
-      background: #1e293b;
-      border-color: #334155;
-      color: #94a3b8;
-    }
-    .dark-mode .expand-all-btn:hover {
-      background: #262f44;
-    }
-    .dark-mode .verse-container {
-      border-left-color: #334155;
-    }
-    .dark-mode .verse-container:hover {
-      border-left-color: #818cf8;
-    }
-    .dark-mode .stat-item {
-      background: #1e293b;
-    }
-    .dark-mode .stat-item .stat-value {
-      color: #e2e8f0;
-    }
-    .dark-mode nav {
-      background: #0f172a/80 !important;
-      border-bottom-color: #1e293b !important;
-    }
-    .dark-mode .theme-toggle,
-    .dark-mode .copy-btn {
-      background: #1e293b;
-      border-color: #334155;
-      color: #94a3b8;
-    }
-    .dark-mode .theme-toggle:hover,
-    .dark-mode .copy-btn:hover {
-      background: #262f44;
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { color: #c0392b; font-size: 0.9rem; }
+    [data-dark] .error-msg { color: #f87171; }
+    .commentary-item.open { }
   </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-white to-indigo-50 text-slate-700 font-sans min-h-screen pb-16 transition-colors duration-300" style="font-family: 'Inter', system-ui, sans-serif;" id="app-body">
+<body data-fz="md">
 
-  <!-- Premium navigation -->
-  <nav class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-colors duration-300" id="main-nav">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-      <a href="index.html" class="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent hover:scale-105 transition-transform">
-        <span class="text-3xl">📜</span> Malolan
-      </a>
-      <div class="flex items-center gap-3">
-        <div id="nav-file-name" class="hidden text-sm font-medium text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full"></div>
-        <button onclick="toggleTheme()" class="theme-toggle" title="Toggle dark mode" id="theme-toggle-btn">
-          🌙 Dark
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <button id="sidebar-toggle" class="nav-btn" onclick="toggleSidebar()" title="Toggle sidebar (S)" aria-label="Toggle table of contents">☰</button>
+  <a id="nav-logo" href="?">Malolan</a>
+  <div id="nav-breadcrumb"></div>
+  <button id="reading-mode-btn" class="nav-btn" onclick="toggleReadingMode()" title="Reading mode (R)">Reading mode</button>
+  <div style="display:flex;align-items:center;gap:0.25rem;">
+    <button class="nav-btn" onclick="changeFontSize(-1)" title="Decrease font size" aria-label="Smaller text">A−</button>
+    <button class="nav-btn" onclick="changeFontSize(1)" title="Increase font size" aria-label="Larger text">A+</button>
+  </div>
+  <button class="nav-btn" onclick="toggleDark()" id="dark-btn" title="Toggle dark mode (D)">Dark</button>
+</nav>
+
+<!-- PROGRESS BAR -->
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<div id="shell">
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div id="toc-container">
+      <p class="sidebar-section-title">Contents</p>
+      <p style="font-size:0.8rem;color:var(--text-muted);padding:0.5rem 1rem;">Open a file to see sections</p>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- SEARCH BAR (shown only in file view) -->
+    <div id="search-wrap" style="display:none;">
+      <div id="search-input-box">
+        <svg id="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/>
+        </svg>
+        <input id="search-input" type="search" placeholder="Search… (press /)" autocomplete="off" spellcheck="false">
+      </div>
+      <div id="search-nav-btns">
+        <span id="search-count"></span>
+        <button class="search-arrow" id="prev-btn" title="Previous (Shift+Enter)">↑</button>
+        <button class="search-arrow" id="next-btn" title="Next (Enter)">↓</button>
+        <button id="search-clear-btn" title="Clear (Esc)">×</button>
+      </div>
+      <div class="search-hint">/ to focus</div>
+      <!-- Expand controls -->
+      <div style="margin-left:auto;display:flex;gap:0.4rem;">
+        <button class="nav-btn" onclick="expandAll(true)" title="Expand all commentaries">Expand all</button>
+        <button class="nav-btn" onclick="expandAll(false)" title="Collapse all commentaries">Collapse all</button>
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div id="content-area">
+      <!-- HOME VIEW -->
+      <div id="home-view">
+        <div class="home-header">
+          <h1>Malolan</h1>
+          <p>A structured reader for Sanskrit scriptures with traditional commentaries.</p>
+        </div>
+        <p class="sidebar-section-title" style="padding:0 0 0.75rem;">Available texts</p>
+        <div class="file-grid" id="file-grid"></div>
+      </div>
+
+      <!-- FILE VIEW -->
+      <div id="file-view" style="display:none;">
+        <div id="loading-state" style="display:none;">
+          <div class="spinner"></div>
+          <span id="loading-text">Loading…</span>
+        </div>
+        <div id="file-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JUMP TO TOP -->
+<button id="jump-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top" aria-label="Scroll to top">↑</button>
+
+<script>
+const FILES = [
+  "brahma-sutra-adhyaya-one.json",
+  "brahma-sutra-adhyaya-two.json",
+  "brahma-sutra-adhyaya-three.json",
+  "brahma-sutra-adhyaya-four.json",
+  "gitarthasangraha.json",
+  "brihadaranyaka-upanishad.json",
+  "chandogya-upanishad.json",
+  "katha-upanishad.json",
+  "kaushitaki-upanishad.json",
+  "shvetasvatara-upanishad.json",
+  "taittiriya-upanishad.json",
+  "upanishad-one.json",
+  "mimamsa-paribasha.json",
+  "mundaka-upanishad.json",
+  "natvacandrika-pramukhacapetika.json",
+  "purushakara-mimamsa.json",
+  "rahasyatrayasara.json",
+  "rahasyatrayasararthasangraha.json",
+  "shatadushani.json",
+  "smritimuktaphalam.json",
+  "stotraratna.json",
+  "tarkasangraha.json",
+  "tattvamuktakalapam.json",
+  "vedarthasangraha.json",
+];
+const DATA = "data/";
+
+// State
+let currentData = null;
+let currentFile = '';
+let searchMatches = [];
+let searchIdx = -1;
+let fontSizes = ['sm','md','lg','xl'];
+let fzIdx = 1;
+let isDark = false;
+let isReading = false;
+let tocObserver = null;
+
+// DOM
+const homeView = document.getElementById('home-view');
+const fileView = document.getElementById('file-view');
+const fileContent = document.getElementById('file-content');
+const loadingState = document.getElementById('loading-state');
+const loadingText = document.getElementById('loading-text');
+const searchWrap = document.getElementById('search-wrap');
+const searchInput = document.getElementById('search-input');
+const searchNavBtns = document.getElementById('search-nav-btns');
+const searchCountEl = document.getElementById('search-count');
+const tocContainer = document.getElementById('toc-container');
+const navBreadcrumb = document.getElementById('nav-breadcrumb');
+const progressFill = document.getElementById('progress-fill');
+const jumpTop = document.getElementById('jump-top');
+const sidebar = document.getElementById('sidebar');
+const mainEl = document.getElementById('main');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+// ---- INIT ----
+window.addEventListener('DOMContentLoaded', () => {
+  loadPrefs();
+  const p = new URLSearchParams(location.search);
+  const f = p.get('file');
+  if (f && FILES.includes(f)) {
+    openFile(f);
+  } else {
+    renderHome();
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('keydown', onKey);
+  document.getElementById('prev-btn').onclick = () => moveSearch(-1);
+  document.getElementById('next-btn').onclick = () => moveSearch(1);
+  document.getElementById('search-clear-btn').onclick = clearSearch;
+  searchInput.addEventListener('input', debounce(doSearch, 220));
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); moveSearch(e.shiftKey ? -1 : 1); }
+    if (e.key === 'Escape') clearSearch();
+  });
+});
+
+// ---- PREFS ----
+function loadPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem('malolan-prefs') || '{}');
+    if (p.dark) { isDark = true; document.documentElement.setAttribute('data-dark',''); document.getElementById('dark-btn').textContent = 'Light'; }
+    if (p.fzIdx !== undefined) { fzIdx = p.fzIdx; document.body.setAttribute('data-fz', fontSizes[fzIdx]); }
+    if (p.reading) { isReading = true; document.body.classList.add('reading-mode'); document.getElementById('reading-mode-btn').textContent = 'Full layout'; }
+  } catch(e) {}
+}
+function savePrefs() {
+  localStorage.setItem('malolan-prefs', JSON.stringify({ dark: isDark, fzIdx, reading: isReading }));
+}
+
+// ---- THEME ----
+window.toggleDark = function() {
+  isDark = !isDark;
+  document.documentElement.toggleAttribute('data-dark', isDark);
+  document.getElementById('dark-btn').textContent = isDark ? 'Light' : 'Dark';
+  savePrefs();
+};
+
+// ---- FONT SIZE ----
+window.changeFontSize = function(dir) {
+  fzIdx = Math.max(0, Math.min(fontSizes.length - 1, fzIdx + dir));
+  document.body.setAttribute('data-fz', fontSizes[fzIdx]);
+  savePrefs();
+};
+
+// ---- READING MODE ----
+window.toggleReadingMode = function() {
+  isReading = !isReading;
+  document.body.classList.toggle('reading-mode', isReading);
+  document.getElementById('reading-mode-btn').textContent = isReading ? 'Full layout' : 'Reading mode';
+  savePrefs();
+};
+
+// ---- SIDEBAR ----
+window.toggleSidebar = function() {
+  const isMobile = window.innerWidth <= 680;
+  if (isMobile) {
+    sidebar.classList.toggle('mobile-open');
+    sidebarOverlay.classList.toggle('visible', sidebar.classList.contains('mobile-open'));
+  } else {
+    sidebar.classList.toggle('hidden');
+    mainEl.classList.toggle('nosidebar', sidebar.classList.contains('hidden'));
+    document.getElementById('search-wrap').classList.toggle('nosidebar', mainEl.classList.contains('nosidebar'));
+  }
+};
+window.closeSidebar = function() {
+  sidebar.classList.remove('mobile-open');
+  sidebarOverlay.classList.remove('visible');
+};
+
+// ---- SCROLL ----
+function onScroll() {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100 || 0;
+  progressFill.style.width = pct + '%';
+  jumpTop.classList.toggle('visible', h.scrollTop > 400);
+}
+
+// ---- KEYBOARD ----
+function onKey(e) {
+  const tag = document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (e.key === '/') { e.preventDefault(); searchInput.focus(); searchInput.select(); }
+  if (e.key === 'd' || e.key === 'D') toggleDark();
+  if (e.key === 'r' || e.key === 'R') toggleReadingMode();
+  if (e.key === 's' || e.key === 'S') toggleSidebar();
+}
+
+// ---- HOME ----
+function renderHome() {
+  homeView.style.display = '';
+  fileView.style.display = 'none';
+  searchWrap.style.display = 'none';
+  navBreadcrumb.innerHTML = '';
+  mainEl.classList.add('nosidebar');
+  tocContainer.innerHTML = '<p class="sidebar-section-title">Contents</p><p style="font-size:0.8rem;color:var(--text-muted);padding:0.5rem 1rem;">Open a file to see sections</p>';
+  document.title = 'Malolan · Scripture Reader';
+
+  const grid = document.getElementById('file-grid');
+  grid.innerHTML = FILES.map(f => {
+    const name = f.replace('.json','').replace(/-/g,' ');
+    return `<a class="file-card" href="?file=${encodeURIComponent(f)}">
+      <div class="file-card-name">${escHtml(name)}</div>
+      <div class="file-card-sub">${escHtml(f)}</div>
+    </a>`;
+  }).join('');
+}
+
+// ---- OPEN FILE ----
+async function openFile(fileName) {
+  currentFile = fileName;
+  homeView.style.display = 'none';
+  fileView.style.display = '';
+  searchWrap.style.display = 'flex';
+  loadingState.style.display = 'flex';
+  fileContent.style.display = 'none';
+  navBreadcrumb.innerHTML = '';
+
+  const name = fileName.replace('.json','').replace(/-/g,' ');
+  document.title = 'Malolan · ' + name;
+
+  try {
+    const resp = await fetch(DATA + fileName);
+    if (!resp.ok) throw new Error('File not found: ' + fileName);
+    const data = await resp.json();
+    currentData = data;
+    loadingState.style.display = 'none';
+    fileContent.style.display = '';
+    renderFile(data, name);
+    navBreadcrumb.innerHTML = `<span>← <a href="?" style="color:var(--text-muted);text-decoration:none;">Texts</a></span> &rsaquo; <span>${escHtml(name)}</span>`;
+    mainEl.classList.remove('nosidebar');
+    // Init TOC observer
+    initTocObserver();
+  } catch(err) {
+    loadingState.innerHTML = `<p class="error-msg">Could not load "${escHtml(fileName)}".<br>${escHtml(err.message)}</p>`;
+  }
+}
+
+// ---- RENDER FILE ----
+function renderFile(data, name) {
+  let sections = [], totalVerses = 0, totalComms = 0, authors = new Set();
+  if (data.content && data.content.sections) sections = data.content.sections;
+  sections.forEach(s => {
+    (s.verses || []).forEach(v => {
+      totalVerses++;
+      (v.commentaries || []).forEach(c => { totalComms++; if (c.author) authors.add(c.author); });
+    });
+  });
+
+  let html = '';
+
+  // Stats
+  html += `<div id="stats-bar">
+    <div class="stat"><div class="stat-n">${sections.length}</div><div class="stat-l">Sections</div></div>
+    <div class="stat"><div class="stat-n">${totalVerses}</div><div class="stat-l">Verses</div></div>
+    <div class="stat"><div class="stat-n">${totalComms}</div><div class="stat-l">Commentaries</div></div>
+    <div class="stat"><div class="stat-n">${authors.size}</div><div class="stat-l">Authors</div></div>
+  </div>`;
+
+  // Metadata
+  if (data.metadata && Object.keys(data.metadata).length) {
+    html += `<details class="meta-block" style="margin-bottom:2rem;">
+      <summary>Metadata</summary>
+      <table class="meta-table"><tbody>`;
+    for (const [k, v] of Object.entries(data.metadata)) {
+      if (v) html += `<tr><td>${escHtml(k.replace(/_/g,' '))}</td><td>${escHtml(String(v))}</td></tr>`;
+    }
+    html += `</tbody></table></details>`;
+  }
+
+  // Content title
+  if (data.content && data.content.title) {
+    html += `<h2 style="font-family:var(--font-reading);font-size:1.4rem;font-weight:600;margin-bottom:1.5rem;color:var(--text);">${escHtml(data.content.title)}</h2>`;
+  }
+
+  // Sections
+  sections.forEach((sec, si) => {
+    const secId = 'sec-' + si;
+    html += `<div class="section-block" id="${secId}">
+      <div class="section-header">
+        <div class="section-title-row">
+          <span class="section-num">${si + 1}</span>
+          <span class="section-name">${escHtml(sec.title || 'Section ' + (si+1))}</span>
+          <span class="section-toggle-btn" onclick="toggleSection('${secId}')">Toggle commentaries</span>
+        </div>
+      </div>`;
+
+    (sec.verses || []).forEach((verse, vi) => {
+      const vNum = verse.verse_number || (vi + 1);
+      const vId = `${secId}-v${vi}`;
+      html += `<div class="verse-block" id="${vId}">
+        <div class="verse-meta">
+          <span class="verse-num">${escHtml(String(vNum))}</span>
+          <button class="verse-copy-btn" onclick="copyVerse('${vId}')" title="Copy verse text">Copy</button>
+        </div>`;
+
+      if (verse.original_text) {
+        html += `<div class="verse-original" data-vtext="${escAttr(verse.original_text)}">${escHtml(verse.original_text)}</div>`;
+      }
+      if (verse.translation) {
+        html += `<div class="verse-translation">${escHtml(verse.translation)}</div>`;
+      }
+
+      const comms = verse.commentaries || [];
+      if (comms.length) {
+        html += `<button class="commentaries-toggle open" id="ct-${vId}" onclick="toggleCommentaries('${vId}')">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 3L5 7L8 3H2Z"/></svg>
+          ${comms.length} ${comms.length === 1 ? 'commentary' : 'commentaries'}
         </button>
-      </div>
-    </div>
-  </nav>
+        <div class="commentaries-list open" id="cl-${vId}">`;
 
-  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
-    <!-- Homepage: list JSON files -->
-    <div id="homepage-view" class="hidden">
-      <div class="text-center mb-12">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800 tracking-tight">Explore <span class="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">JSON files</span></h1>
-        <p class="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Select a .json file to view its structured content with commentaries.</p>
-        <div class="mt-4 flex justify-center gap-3 text-sm text-slate-500">
-          <span class="bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">📚 <span id="total-files-count">0</span> files</span>
-        </div>
-      </div>
-      <ul id="file-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- dynamic file cards -->
-      </ul>
-    </div>
-
-    <!-- File view (structured JSON) -->
-    <div id="file-view" class="hidden">
-      <!-- Toolbar -->
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <a href="index.html" class="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-full shadow-sm border border-indigo-100 hover:shadow-md transition">
-          <span>←</span> Datasets
-        </a>
-        <div class="relative flex-1 min-w-[260px] max-w-lg">
-          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <input id="search-input" type="text" autocomplete="off" placeholder="Search within file… (press / to focus)"
-            class="w-full pl-11 pr-28 py-3 text-sm bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all" />
-          <div id="search-controls" class="hidden absolute inset-y-1 right-1 flex items-center gap-1 bg-white/90 rounded-xl px-1">
-            <span id="search-count" class="text-xs font-mono text-slate-500 px-2 select-none whitespace-nowrap"></span>
-            <button id="search-prev" type="button" title="Previous (Shift+Enter)" class="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-500 hover:text-indigo-700 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.938a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z" clip-rule="evenodd" /></svg>
-            </button>
-            <button id="search-next" type="button" title="Next (Enter)" class="p-1.5 rounded-lg hover:bg-indigo-50 text-slate-500 hover:text-indigo-700 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
-            </button>
-            <button id="search-clear" type="button" title="Clear (Esc)" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-500 hover:text-red-600 transition">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" clip-rule="evenodd" /></svg>
-            </button>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 text-sm">
-          <button onclick="copyCurrentContent()" class="copy-btn" id="copy-btn">📋 Copy</button>
-        </div>
-      </div>
-
-      <!-- Stats bar -->
-      <div id="stats-bar" class="bg-white/80 backdrop-blur-sm rounded-2xl p-4 mb-4 border border-slate-200/80 shadow-sm transition-colors duration-300">
-        <div class="stats-grid" id="stats-grid">
-          <!-- populated dynamically -->
-        </div>
-      </div>
-
-      <!-- Expand/Collapse All controls -->
-      <div class="flex flex-wrap gap-2 mb-4" id="expand-controls">
-        <button onclick="expandAllCommentaries()" class="expand-all-btn">📖 Expand All</button>
-        <button onclick="collapseAllCommentaries()" class="expand-all-btn">📕 Collapse All</button>
-        <button onclick="expandAllVerses()" class="expand-all-btn">📚 Expand Verses</button>
-        <button onclick="collapseAllVerses()" class="expand-all-btn">📚 Collapse Verses</button>
-      </div>
-
-      <!-- Metadata & structured content -->
-      <div id="md-scroll-container" class="overflow-auto custom-scroll bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl p-6 md:p-8 border border-slate-200/80 transition-colors duration-300" style="max-height: 75vh;">
-        <div id="md-content" class="md-content prose max-w-none">
-          <!-- dynamically rendered structured JSON -->
-        </div>
-      </div>
-      <div class="mt-3 flex justify-between text-xs text-slate-400 px-2" id="file-info-indicator">
-        <span id="file-info-left"></span>
-        <span id="file-info-right"></span>
-      </div>
-    </div>
-
-    <!-- Status message -->
-    <div id="status-message" class="text-center py-20 hidden">
-      <div class="inline-flex flex-col items-center gap-4 bg-white p-8 rounded-3xl shadow-lg">
-        <div class="animate-spin h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full"></div>
-        <p class="text-lg font-medium text-slate-600" id="status-text">Loading JSON file...</p>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    // ----- CONFIGURATION -----
-    const jsonFiles = [
-      "brahma-sutra-adhyaya-one.json",
-      "brahma-sutra-adhyaya-two.json",
-      "brahma-sutra-adhyaya-three.json",
-      "brahma-sutra-adhyaya-four.json",
-      "gitarthasangraha.json",
-      "brihadaranyaka-upanishad.json",
-      "chandogya-upanishad.json",
-      "katha-upanishad.json",
-      "kaushitaki-upanishad.json",
-      "shvetasvatara-upanishad.json",
-      "taittiriya-upanishad.json",
-      "upanishad-one.json",
-      "mimamsa-paribasha.json",
-      "mundaka-upanishad.json",
-      "natvacandrika-pramukhacapetika.json",
-      "purushakara-mimamsa.json",
-      "rahasyatrayasara.json",
-      "rahasyatrayasararthasangraha.json",
-      "shatadushani.json",
-      "smritimuktaphalam.json",
-      "stotraratna.json",
-      "tarkasangraha.json",
-      "tattvamuktakalapam.json",
-      "vedarthasangraha.json",
-    ];
-    const dataFolder = "data/";
-
-    // DOM elements
-    const homepageView = document.getElementById('homepage-view');
-    const fileView = document.getElementById('file-view');
-    const fileList = document.getElementById('file-list');
-    const mdContent = document.getElementById('md-content');
-    const statusMessage = document.getElementById('status-message');
-    const statusText = document.getElementById('status-text');
-    const navFileName = document.getElementById('nav-file-name');
-    const searchInput = document.getElementById('search-input');
-    const searchControls = document.getElementById('search-controls');
-    const searchCount = document.getElementById('search-count');
-    const searchPrevBtn = document.getElementById('search-prev');
-    const searchNextBtn = document.getElementById('search-next');
-    const searchClearBtn = document.getElementById('search-clear');
-    const fileInfoLeft = document.getElementById('file-info-left');
-    const fileInfoRight = document.getElementById('file-info-right');
-    const statsGrid = document.getElementById('stats-grid');
-    const totalFilesCount = document.getElementById('total-files-count');
-    const copyBtn = document.getElementById('copy-btn');
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
-
-    let fullJsonData = null;
-    let currentFileName = '';
-    let searchMatches = [];
-    let searchPointer = -1;
-    let currentSearchQuery = '';
-    let searchDebounceTimer = null;
-    let isDarkMode = false;
-
-    const escapeHtml = (str) => {
-      if (!str) return '';
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    };
-
-    // ----- Theme Toggle -----
-    function toggleTheme() {
-      isDarkMode = !isDarkMode;
-      document.body.classList.toggle('dark-mode', isDarkMode);
-      document.getElementById('main-nav').classList.toggle('dark-mode', isDarkMode);
-      document.getElementById('md-scroll-container').classList.toggle('dark-mode', isDarkMode);
-      document.getElementById('stats-bar').classList.toggle('dark-mode', isDarkMode);
-      themeToggleBtn.textContent = isDarkMode ? '☀️ Light' : '🌙 Dark';
-      localStorage.setItem('malolan-theme', isDarkMode ? 'dark' : 'light');
-    }
-
-    // Load saved theme
-    if (localStorage.getItem('malolan-theme') === 'dark') {
-      toggleTheme();
-    }
-
-    // ----- JSON RENDERER -----
-    function renderJsonContent(jsonData) {
-      let html = '';
-
-      // Metadata section
-      if (jsonData.metadata && Object.keys(jsonData.metadata).length > 0) {
-        html += `<div class="mb-8 fade-in">`;
-        html += `<div class="flex items-center gap-2 mb-3"><span class="text-xl">📋</span><h2 class="text-xl font-bold text-indigo-800">Metadata</h2></div>`;
-        html += `<table class="meta-table"><tbody>`;
-        
-        const metaFields = [
-          ['scripture_name', '📖 Scripture Name'],
-          ['slug', '🔗 Slug'],
-          ['author', '✍️ Author'],
-          ['year_of_composition', '📅 Year'],
-          ['category', '📂 Category'],
-          ['description', '📝 Description'],
-          ['language', '🌐 Language'],
-          ['total_chapters', '📑 Chapters'],
-          ['total_verses', '📜 Verses']
-        ];
-        
-        let hasMetadata = false;
-        metaFields.forEach(([key, label]) => {
-          if (jsonData.metadata[key]) {
-            hasMetadata = true;
-            html += `<tr><td>${label}</td><td>${escapeHtml(jsonData.metadata[key])}</td></tr>`;
-          }
-        });
-        if (!hasMetadata) {
-          // Show all metadata fields dynamically
-          Object.entries(jsonData.metadata).forEach(([key, value]) => {
-            html += `<tr><td>${escapeHtml(key)}</td><td>${escapeHtml(value)}</td></tr>`;
-          });
-        }
-        html += `</tbody></table></div>`;
-      }
-
-      // Content
-      if (jsonData.content) {
-        const content = jsonData.content;
-        
-        if (content.title) {
-          html += `<div class="fade-in"><h2 class="text-2xl font-bold text-slate-800 mt-6 mb-4">📖 ${escapeHtml(content.title)}</h2></div>`;
-        }
-
-        if (content.sections && content.sections.length) {
-          content.sections.forEach((section, secIdx) => {
-            html += `<div class="section-card fade-in">`;
-            html += `<div class="flex items-center gap-2 mb-3">`;
-            html += `<span class="section-number">${secIdx + 1}</span>`;
-            html += `<h3 class="text-lg font-semibold text-indigo-700">${escapeHtml(section.title || 'Section ' + (secIdx + 1))}</h3>`;
-            if (section.verses) {
-              html += `<span class="text-xs text-slate-400 ml-auto">${section.verses.length} verses</span>`;
-            }
-            html += `</div>`;
-            
-            if (section.verses && section.verses.length) {
-              section.verses.forEach((verse, vIdx) => {
-                const verseId = `sec${secIdx}-v${vIdx}`;
-                html += `<div class="verse-container mb-4">`;
-                html += `<div class="flex items-center gap-2 text-sm text-slate-500 mb-1">`;
-                html += `<span class="verse-number-badge">#${escapeHtml(verse.verse_number || (vIdx + 1))}</span>`;
-                html += `</div>`;
-                
-                if (verse.original_text) {
-                  html += `<div class="verse-original">${escapeHtml(verse.original_text)}</div>`;
-                }
-
-                if (verse.translation) {
-                  html += `<div class="text-sm text-slate-600 mt-2 ml-1 italic">${escapeHtml(verse.translation)}</div>`;
-                }
-
-                if (verse.commentaries && verse.commentaries.length) {
-                  const commDetailsId = `${verseId}-commentaries`;
-                  html += `<details class="mt-3 commentary-group" open id="${commDetailsId}">`;
-                  html += `<summary class="text-indigo-600 hover:text-indigo-800 transition">📝 Commentaries (${verse.commentaries.length})</summary>`;
-                  html += `<div class="mt-2 space-y-2">`;
-                  verse.commentaries.forEach((comm, cIdx) => {
-                    html += `<details class="commentary-block commentary-item" open>`;
-                    html += `<summary class="flex items-center gap-2">`;
-                    html += `<span class="commentary-author">${escapeHtml(comm.author || 'Anonymous')}</span>`;
-                    if (comm.language) {
-                      html += `<span class="text-xs text-slate-400">${escapeHtml(comm.language)}</span>`;
-                    }
-                    html += `</summary>`;
-                    html += `<div class="mt-2 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">${escapeHtml(comm.commentary || '')}</div>`;
-                    html += `</details>`;
-                  });
-                  html += `</div></details>`;
-                }
-                html += `</div>`;
-              });
-            }
-            html += `</div>`;
-          });
-        }
-      }
-
-      // If no structured content found, display raw JSON
-      if (!html) {
-        html += `<div class="empty-state"><div class="icon">📄</div><p>No structured content found. Displaying raw JSON:</p></div>`;
-        html += `<pre class="bg-slate-50 p-4 rounded-lg text-sm overflow-auto">${escapeHtml(JSON.stringify(jsonData, null, 2))}</pre>`;
-      }
-
-      return html;
-    }
-
-    function updateStats(jsonData) {
-      let verses = 0;
-      let commentaries = 0;
-      let sections = 0;
-      let authors = new Set();
-      
-      if (jsonData.content && jsonData.content.sections) {
-        sections = jsonData.content.sections.length;
-        jsonData.content.sections.forEach(section => {
-          if (section.verses) {
-            verses += section.verses.length;
-            section.verses.forEach(verse => {
-              if (verse.commentaries) {
-                commentaries += verse.commentaries.length;
-                verse.commentaries.forEach(comm => {
-                  if (comm.author) authors.add(comm.author);
-                });
-              }
-            });
-          }
-        });
-      }
-      
-      statsGrid.innerHTML = `
-        <div class="stat-item"><div class="stat-value">${sections}</div><div class="stat-label">Sections</div></div>
-        <div class="stat-item"><div class="stat-value">${verses}</div><div class="stat-label">Verses</div></div>
-        <div class="stat-item"><div class="stat-value">${commentaries}</div><div class="stat-label">Commentaries</div></div>
-        <div class="stat-item"><div class="stat-value">${authors.size}</div><div class="stat-label">Authors</div></div>
-      `;
-      
-      fileInfoLeft.textContent = `${sections} sections • ${verses} verses • ${commentaries} commentaries`;
-      fileInfoRight.textContent = `${authors.size} authors`;
-    }
-
-    // ----- Expand/Collapse functions -----
-    window.expandAllCommentaries = function() {
-      document.querySelectorAll('.commentary-group, .commentary-item').forEach(el => {
-        el.setAttribute('open', '');
-      });
-    };
-
-    window.collapseAllCommentaries = function() {
-      document.querySelectorAll('.commentary-group, .commentary-item').forEach(el => {
-        el.removeAttribute('open');
-      });
-    };
-
-    window.expandAllVerses = function() {
-      document.querySelectorAll('.verse-container details').forEach(el => {
-        el.setAttribute('open', '');
-      });
-    };
-
-    window.collapseAllVerses = function() {
-      document.querySelectorAll('.verse-container details').forEach(el => {
-        el.removeAttribute('open');
-      });
-    };
-
-    // ----- Copy content -----
-    function copyCurrentContent() {
-      if (!fullJsonData) return;
-      const text = JSON.stringify(fullJsonData, null, 2);
-      navigator.clipboard.writeText(text).then(() => {
-        copyBtn.textContent = '✅ Copied!';
-        copyBtn.classList.add('copied');
-        setTimeout(() => {
-          copyBtn.textContent = '📋 Copy';
-          copyBtn.classList.remove('copied');
-        }, 2000);
-      }).catch(() => {
-        // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        copyBtn.textContent = '✅ Copied!';
-        setTimeout(() => {
-          copyBtn.textContent = '📋 Copy';
-        }, 2000);
-      });
-    }
-
-    // ----- Routing & rendering -----
-    window.addEventListener('DOMContentLoaded', () => {
-      totalFilesCount.textContent = jsonFiles.length;
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const selectedFile = urlParams.get('file');
-      if (selectedFile && jsonFiles.includes(selectedFile)) {
-        renderFileMode(selectedFile);
-      } else {
-        renderHomeMode();
-      }
-    });
-
-    function renderHomeMode() {
-      homepageView.classList.remove('hidden');
-      fileView.classList.add('hidden');
-      document.getElementById('expand-controls').classList.add('hidden');
-      document.getElementById('stats-bar').classList.add('hidden');
-      fileList.innerHTML = '';
-      jsonFiles.forEach(file => {
-        const li = document.createElement('li');
-        li.className = "file-card group bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300";
-        li.innerHTML = `
-          <a href="?file=${encodeURIComponent(file)}" class="block">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <span class="text-2xl">📄</span>
-                <div>
-                  <span class="font-semibold text-slate-800 group-hover:text-indigo-700 transition">${escapeHtml(file)}</span>
-                  <span class="json-badge ml-2">JSON</span>
-                </div>
-              </div>
-              <span class="text-xs font-bold bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full group-hover:bg-indigo-100 transition">Open →</span>
+        comms.forEach((comm, ci) => {
+          const cId = `ci-${vId}-${ci}`;
+          html += `<div class="commentary-item open" id="${cId}">
+            <div class="commentary-header" onclick="toggleCommentary('${cId}')">
+              <span class="commentary-author-badge">${escHtml(comm.author || 'Anonymous')}</span>
+              ${comm.language ? `<span class="commentary-lang">${escHtml(comm.language)}</span>` : ''}
+              <span class="commentary-chevron">▲</span>
             </div>
-          </a>
-        `;
-        fileList.appendChild(li);
-      });
-    }
-
-    function renderFileMode(fileName) {
-      currentFileName = fileName;
-      homepageView.classList.add('hidden');
-      fileView.classList.remove('hidden');
-      document.getElementById('expand-controls').classList.remove('hidden');
-      document.getElementById('stats-bar').classList.remove('hidden');
-      navFileName.textContent = fileName;
-      navFileName.classList.remove('hidden');
-      showStatus("Loading structured JSON...");
-      
-      const filePath = dataFolder + fileName;
-      fetch(filePath)
-        .then(response => {
-          if (!response.ok) throw new Error(`File not found: ${fileName}`);
-          return response.json();
-        })
-        .then(jsonData => {
-          fullJsonData = jsonData;
-          const html = renderJsonContent(jsonData);
-          mdContent.innerHTML = html;
-          updateStats(jsonData);
-          // Reset search
-          searchMatches = [];
-          searchPointer = -1;
-          currentSearchQuery = '';
-          searchInput.value = '';
-          searchControls.classList.add('hidden');
-          // Remove old highlights
-          document.querySelectorAll('.mark-search').forEach(el => {
-            el.replaceWith(document.createTextNode(el.textContent));
-          });
-          hideStatus();
-        })
-        .catch((err) => {
-          console.error(err);
-          showStatus(`Failed to load "${fileName}". ${err.message}`, true);
+            <div class="commentary-body">${escHtml(comm.commentary || '')}</div>
+          </div>`;
         });
-    }
-
-    function showStatus(msg, isError = false) {
-      statusMessage.classList.remove('hidden');
-      statusText.textContent = msg;
-      statusText.className = isError ? "text-lg font-medium text-rose-600" : "text-lg font-medium text-slate-600";
-    }
-    
-    function hideStatus() { 
-      statusMessage.classList.add('hidden'); 
-    }
-
-    // ----- Search & highlight -----
-    function performSearch(query) {
-      currentSearchQuery = query.trim().toLowerCase();
-      searchMatches = [];
-      searchPointer = -1;
-      
-      // Remove old highlights
-      document.querySelectorAll('.mark-search').forEach(el => {
-        el.replaceWith(document.createTextNode(el.textContent));
-      });
-      
-      if (!currentSearchQuery) {
-        searchControls.classList.add('hidden');
-        return;
+        html += `</div>`;
       }
-      
-      const walker = document.createTreeWalker(mdContent, NodeFilter.SHOW_TEXT, {
-        acceptNode: function(node) {
-          if (node.parentElement && node.parentElement.classList.contains('mark-search')) {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      });
-      
-      const textNodes = [];
-      let node;
-      while (node = walker.nextNode()) {
-        textNodes.push(node);
-      }
-      
-      textNodes.forEach(textNode => {
-        const text = textNode.textContent;
-        const lower = text.toLowerCase();
-        if (lower.includes(currentSearchQuery)) {
-          const fragment = document.createDocumentFragment();
-          let lastIdx = 0;
-          let idx = lower.indexOf(currentSearchQuery);
-          while (idx !== -1) {
-            if (idx > lastIdx) {
-              fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
-            }
-            const mark = document.createElement('span');
-            mark.className = 'mark-search';
-            mark.textContent = text.slice(idx, idx + currentSearchQuery.length);
-            fragment.appendChild(mark);
-            lastIdx = idx + currentSearchQuery.length;
-            idx = lower.indexOf(currentSearchQuery, lastIdx);
-          }
-          if (lastIdx < text.length) {
-            fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
-          }
-          textNode.replaceWith(fragment);
-        }
-      });
-      
-      const marks = mdContent.querySelectorAll('.mark-search');
-      searchMatches = Array.from(marks);
-      
-      if (searchMatches.length > 0) {
-        searchPointer = 0;
-      }
-      
-      updateSearchUI();
-      if (searchPointer !== -1) {
-        scrollToMatch();
-      }
-    }
-
-    function goToMatch(offset) {
-      if (!searchMatches.length) return;
-      searchPointer = (searchPointer + offset + searchMatches.length) % searchMatches.length;
-      updateSearchUI();
-      scrollToMatch();
-    }
-
-    function scrollToMatch() {
-      if (searchPointer < 0 || searchPointer >= searchMatches.length) return;
-      const target = searchMatches[searchPointer];
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        target.style.transition = 'background 0.2s, box-shadow 0.2s';
-        target.style.background = '#fbbf24';
-        target.style.boxShadow = '0 0 0 3px rgba(251, 191, 36, 0.5)';
-        setTimeout(() => { 
-          target.style.background = ''; 
-          target.style.boxShadow = ''; 
-        }, 800);
-      }
-    }
-
-    function updateSearchUI() {
-      if (!currentSearchQuery || searchMatches.length === 0) {
-        searchControls.classList.remove('hidden');
-        searchCount.textContent = searchMatches.length === 0 && currentSearchQuery ? '0/0' : '';
-        if (!currentSearchQuery) searchControls.classList.add('hidden');
-        return;
-      }
-      searchControls.classList.remove('hidden');
-      searchCount.textContent = `${searchPointer + 1}/${searchMatches.length}`;
-    }
-
-    function clearSearch() {
-      searchInput.value = '';
-      performSearch('');
-    }
-
-    // Search event listeners
-    searchInput.addEventListener('input', (e) => {
-      clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = setTimeout(() => performSearch(e.target.value), 250);
+      html += `</div>`;
     });
-    
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (searchMatches.length) goToMatch(e.shiftKey ? -1 : 1);
-      } else if (e.key === 'Escape') {
-        clearSearch();
-        searchInput.blur();
+    html += `</div>`;
+  });
+
+  fileContent.innerHTML = html;
+  buildToc(sections);
+}
+
+// ---- TOC ----
+function buildToc(sections) {
+  let html = '<p class="sidebar-section-title">Sections</p>';
+  sections.forEach((sec, si) => {
+    const vCount = (sec.verses || []).length;
+    html += `<a class="toc-item" id="toc-${si}" onclick="jumpToSection(${si})" href="javascript:void(0)">
+      <span class="toc-verse-count">${vCount}v</span>
+      ${escHtml(sec.title || 'Section ' + (si+1))}
+    </a>`;
+  });
+  tocContainer.innerHTML = html;
+}
+
+function jumpToSection(idx) {
+  const el = document.getElementById('sec-' + idx);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (window.innerWidth <= 680) closeSidebar();
+}
+
+function initTocObserver() {
+  if (tocObserver) tocObserver.disconnect();
+  const navH = 56 + 50;
+  const opts = { rootMargin: `-${navH}px 0px -60% 0px`, threshold: 0 };
+  tocObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = entry.target.id.replace('sec-', '');
+        document.querySelectorAll('.toc-item').forEach(t => t.classList.remove('active'));
+        const t = document.getElementById('toc-' + idx);
+        if (t) { t.classList.add('active'); t.scrollIntoView({ block: 'nearest' }); }
       }
     });
-    
-    searchPrevBtn.addEventListener('click', () => goToMatch(-1));
-    searchNextBtn.addEventListener('click', () => goToMatch(1));
-    searchClearBtn.addEventListener('click', () => { clearSearch(); searchInput.focus(); });
+  }, opts);
+  document.querySelectorAll('.section-block').forEach(el => tocObserver.observe(el));
+}
 
-    // Global keyboard shortcut for search
-    document.addEventListener('keydown', (e) => {
-      if (e.key === '/' && !fileView.classList.contains('hidden')) {
-        const tag = document.activeElement?.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-        e.preventDefault();
-        searchInput.focus();
-        searchInput.select();
-      }
-    });
+// ---- EXPAND/COLLAPSE ----
+window.toggleCommentary = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+};
+window.toggleCommentaries = function(vId) {
+  const btn = document.getElementById('ct-' + vId);
+  const list = document.getElementById('cl-' + vId);
+  if (!btn || !list) return;
+  const open = list.classList.toggle('open');
+  btn.classList.toggle('open', open);
+};
+window.toggleSection = function(secId) {
+  const sec = document.getElementById(secId);
+  if (!sec) return;
+  const lists = sec.querySelectorAll('.commentaries-list');
+  const toggles = sec.querySelectorAll('.commentaries-toggle');
+  const anyOpen = Array.from(lists).some(l => l.classList.contains('open'));
+  lists.forEach(l => l.classList.toggle('open', !anyOpen));
+  toggles.forEach(t => t.classList.toggle('open', !anyOpen));
+};
+window.expandAll = function(open) {
+  document.querySelectorAll('.commentaries-list').forEach(l => l.classList.toggle('open', open));
+  document.querySelectorAll('.commentaries-toggle').forEach(b => b.classList.toggle('open', open));
+  document.querySelectorAll('.commentary-item').forEach(c => c.classList.toggle('open', open));
+};
 
-  </script>
+// ---- COPY VERSE ----
+window.copyVerse = function(vId) {
+  const block = document.getElementById(vId);
+  if (!block) return;
+  const textEl = block.querySelector('.verse-original');
+  const text = textEl ? textEl.getAttribute('data-vtext') : '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = block.querySelector('.verse-copy-btn');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy', 1500); }
+  }).catch(() => {});
+};
+
+// ---- SEARCH ----
+let searchTimer = null;
+function debounce(fn, ms) { return (...a) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => fn(...a), ms); }; }
+
+function doSearch() {
+  const q = searchInput.value.trim().toLowerCase();
+  clearHighlights();
+  searchMatches = []; searchIdx = -1;
+  if (!q) { searchNavBtns.style.display = 'none'; searchCountEl.textContent = ''; return; }
+  const walker = document.createTreeWalker(fileContent, NodeFilter.SHOW_TEXT);
+  const hits = [];
+  let node;
+  while (node = walker.nextNode()) {
+    if (node.parentElement.closest('.commentary-body,style,script')) {
+      // still search inside commentary bodies
+    }
+    const txt = node.textContent.toLowerCase();
+    let pos = txt.indexOf(q);
+    while (pos !== -1) {
+      hits.push({ node, pos, len: q.length });
+      pos = txt.indexOf(q, pos + 1);
+    }
+  }
+  // Highlight in reverse so offsets stay valid
+  for (let i = hits.length - 1; i >= 0; i--) {
+    const { node, pos, len } = hits[i];
+    try {
+      const range = document.createRange();
+      range.setStart(node, pos);
+      range.setEnd(node, pos + len);
+      const mark = document.createElement('mark');
+      mark.className = 'mark-hit';
+      range.surroundContents(mark);
+      searchMatches.unshift(mark);
+      // Ensure parent commentary is open
+      const ci = mark.closest('.commentary-item');
+      if (ci) ci.classList.add('open');
+      const cl = mark.closest('.commentaries-list');
+      if (cl) { cl.classList.add('open'); const btn = document.getElementById('ct-' + (cl.id.replace('cl-',''))); if (btn) btn.classList.add('open'); }
+    } catch(e) {}
+  }
+  searchNavBtns.style.display = searchMatches.length ? 'flex' : 'none';
+  if (searchMatches.length) {
+    searchIdx = 0;
+    highlightActive();
+  }
+  updateSearchCount();
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.mark-hit').forEach(m => {
+    m.replaceWith(document.createTextNode(m.textContent));
+  });
+  searchMatches = [];
+  searchIdx = -1;
+}
+function clearSearch() {
+  searchInput.value = '';
+  clearHighlights();
+  searchNavBtns.style.display = 'none';
+  searchCountEl.textContent = '';
+}
+function moveSearch(dir) {
+  if (!searchMatches.length) return;
+  searchMatches[searchIdx]?.classList.remove('active-hit');
+  searchIdx = (searchIdx + dir + searchMatches.length) % searchMatches.length;
+  highlightActive();
+  updateSearchCount();
+}
+function highlightActive() {
+  const m = searchMatches[searchIdx];
+  if (!m) return;
+  searchMatches.forEach((el,i) => el.classList.toggle('active-hit', i === searchIdx));
+  m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function updateSearchCount() {
+  searchCountEl.textContent = searchMatches.length ? `${searchIdx+1}/${searchMatches.length}` : '0 results';
+}
+
+// ---- UTILS ----
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+function escAttr(s) {
+  return escHtml(s).replace(/\n/g,'&#10;');
+}
+</script>
 </body>
 </html>
