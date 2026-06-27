@@ -708,6 +708,41 @@
     .reading-meta span::before { content: '·'; margin-right: 0.4rem; }
     .reading-meta span:first-child::before { display: none; }
   
+/* ═══ TEXT ATTRIBUTION (author / category) ═══ */
+    .text-attribution {
+      display: flex; flex-wrap: wrap; gap: 0.65rem;
+      margin: 0 0 1.75rem;
+    }
+    .attr-chip {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 0.35rem 0.9rem 0.35rem 0.65rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .attr-chip:hover {
+      border-color: var(--border-strong);
+      background: var(--accent-dim);
+    }
+    .attr-icon {
+      font-size: 0.6rem; color: var(--gold3);
+      line-height: 1; flex-shrink: 0;
+    }
+    .attr-body {
+      display: flex; align-items: baseline; gap: 0.4rem;
+    }
+    .attr-label { 
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .attr-label::after { content: ':'; }
+    .attr-value {
+      font-family: var(--font-reading);
+      font-size: 0.9rem; font-style: italic;
+      color: var(--accent-text);
+    }
+
 /* Tablets */
 @media (min-width:681px) and (max-width:1024px) {
   :root { --sidebar-w: 320px; }
@@ -1180,6 +1215,25 @@ function renderFile(data, name) {
     <span>~${wordCount.toLocaleString()} words</span>
     <span>~${readMins} min read</span>
   </div>`;
+
+  // Attribution strip — author & category from metadata
+  const meta = data.metadata || {};
+  const attrParts = [];
+  if (meta.author)   attrParts.push({ icon: '✦', label: 'Author',   value: meta.author });
+  if (meta.category) attrParts.push({ icon: '◈', label: 'Category', value: meta.category });
+  if (attrParts.length) {
+    html += `<div class="text-attribution">` +
+      attrParts.map(p =>
+        `<div class="attr-chip">
+          <span class="attr-icon">${p.icon}</span>
+          <div class="attr-body">
+            <span class="attr-label">${escHtml(p.label)}</span>
+            <span class="attr-value">${escHtml(p.value)}</span>
+          </div>
+        </div>`
+      ).join('') +
+    `</div>`;
+  }
 
   // Metadata
   if (data.metadata && Object.keys(data.metadata).length) {
